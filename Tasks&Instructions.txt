@@ -1,0 +1,192 @@
+project-setup.txt
+
+PHASE 1 GOALS: have a very basic working prototype that can make posts, 
+replies, and populates data in each board component 
+
+!!!!!!!!!!BEFORE YOU BEGIN!!!!!!!!!!!
+Make sure you have downloaded the following libraries within the directory you are working on:
+
+Frontend Libraries (copy and paste in CLI):
+npm install next react react-dom tailwindcss postcss autoprefixer \
+@reduxjs/toolkit react-redux @apollo/client graphql \
+eslint prettier husky lint-staged react-hook-form
+
+Backend Libraries (copy and paste in CLI):
+npm install express apollo-server-micro graphql mongoose jsonwebtoken bcryptjs \
+dotenv cors helmet express-rate-limit
+
+Dev Dependencies for Backend:
+npm install --save-dev nodemon eslint prettier husky lint-staged
+
+# Project Setup and Assignments
+
+## Folder Structure
+```
+/frontend
+├── /components (Grace)
+│   ├── BoardList.jsx         // Renders the list of boards on the home page
+│   ├── PostItem.jsx          // Single post component
+│   ├── ReplyItem.jsx         // Single reply component
+│   └── BoardContent.jsx      // Container for board data (posts and replies)
+├── /pages (Grace)
+│   ├── index.jsx             // Home page that lists the 5 boards
+│   └── /boards
+│       └── [boardId].jsx     // Dynamic route for each board page
+├── /store (Grace)
+│   ├── store.js              // Redux store configuration
+│   └── slices                // Redux slices for board, posts, and replies
+├── /styles (Grace)
+│   ├── globals.css           // Global styles (import Tailwind here)
+│   └── tailwind.config.js    // Tailwind configuration with your color theme
+├── /graphql (Grace)
+│   ├── queries.js            // GraphQL queries (fetch board, posts, replies)
+│   ├── mutations.js          // GraphQL mutations (create/delete posts, add reply)
+│   └── fragments.js          // GraphQL fragments for posts
+├── package.json
+└── next.config.js
+
+/backend
+├── /src
+│   ├── /graphql (Melvin)
+│   │   ├── schema.js         // Define GraphQL types for Board, Post, and Reply
+│   │   ├── resolvers.js      // Resolvers for queries and mutations
+│   │   └── fragments.js      // Fragments for post-related operations (if needed)
+│   ├── /models (Melvin)
+│   │   ├── Board.js          // Mongoose model for boards
+│   │   ├── Post.js           // Mongoose model for posts
+│   │   └── Reply.js          // Mongoose model for post replies
+│   ├── /db (Melvin)
+│   │   └── connection.js     // MongoDB connection logic
+│   └── server.js (Melvin)    // Entry point for the GraphQL server (Apollo Server/Express)
+├── package.json
+└── .env                    // Environment variables (MongoDB URI, etc.)
+```
+
+## Assigned Tasks
+
+Here's the adapted version of your instructions in `.txt` format:
+
+```
+1. Project Setup and Initial Configuration (Grace)
+Goal: Set up the frontend and backend environments with necessary dependencies and configurations.
+
+Steps:
+Initialize Next.js & TailwindCSS:
+Run:
+  npx create-next-app frontend
+  cd frontend
+  npm install tailwindcss postcss autoprefixer
+  npx tailwindcss init -p
+Configure tailwind.config.js and globals.css.
+
+Install and Configure Redux & Apollo Client:
+Install dependencies:
+  npm install @reduxjs/toolkit react-redux @apollo/client graphql
+Set up Redux store in store.js.
+Create an Apollo Client instance and wrap _app.js in ApolloProvider.
+
+Set Up Authentication with JWT:
+Install JWT library for decoding tokens:
+  npm install jsonwebtoken
+Create an authentication utility in utils/auth.js to store/retrieve tokens.
+
+Configure ESLint, Prettier, and Husky:
+Install dependencies:
+  npm install --save-dev eslint prettier husky lint-staged
+Configure .eslintrc.js and .prettierrc.
+Set up pre-commit hooks in package.json:
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  }
+Run npx husky install.
+
+2. Database Schema and GraphQL Setup (Melvin)
+Goal: Set up MongoDB schema, GraphQL resolvers, and database connection.
+
+Steps:
+Set Up MongoDB Connection:
+Install dependencies:
+  npm install mongoose dotenv
+Create config/db.js to handle connection logic.
+
+Design Database Schema:
+Define Mongoose models for Users, Boards, Posts, and Replies in models/.
+
+Implement GraphQL Resolvers and Queries:
+Install Apollo Server:
+  npm install apollo-server-micro graphql
+Create GraphQL schema (typeDefs.js) and resolvers (resolvers.js).
+
+3. Home Page Development (Grace)
+Goal: Create the home page with board listings and navigation.
+
+Steps:
+Set Up Home Page (pages/index.js)
+Fetch board list using Apollo Client’s useQuery().
+Implement Styling and Navigation:
+Use TailwindCSS for styling.
+Implement navigation to boards via Next.js Link components.
+
+4. Board Component Development (Gabriel/Grey)
+Goal: Develop the board component to display posts and replies.
+
+Steps:
+(Grey) Create Board Component (components/Board.js)
+Set up the UI for displaying posts.
+(Gabriel) Fetch and Display Posts/Replies
+Use Apollo useQuery() to fetch data.
+Display posts and replies dynamically.
+(Grey) Implement Pagination/Infinite Scroll
+Use useState() and useEffect() to manage pagination.
+Fetch additional posts on scroll.
+
+5. Post and Reply Creation (Grace)
+Goal: Allow users to create posts and replies using GraphQL mutations.
+
+Steps:
+Create Forms for Posts/Replies (components/PostForm.js)
+Use react-hook-form for form handling.
+Implement GraphQL Mutations
+Create mutation hooks with Apollo’s useMutation().
+Handle Optimistic UI Updates
+Update UI before the backend confirms mutation success.
+
+6. API Security and Authentication (Melvin/Grace)
+Goal: Secure API endpoints and implement JWT authentication.
+
+Steps:
+(Melvin) Implement JWT-based Authentication
+Install dependencies:
+  npm install jsonwebtoken bcryptjs
+Set up token generation and user authentication in auth.js.
+(Grace) Secure GraphQL Resolvers
+Add authentication middleware to protect sensitive queries.
+(Melvin) Add Rate Limiting & Role-Based Access
+Install security dependencies:
+  npm install helmet cors express-rate-limit
+Configure rate limiting and roles.
+
+7. State Management and Data Fetching (Grace)
+Goal: Use Redux for state management and Apollo for data fetching.
+
+Steps:
+Implement Redux Slices (store/slices/)
+Create slices for auth, posts, and boards.
+Set Up Apollo Client in _app.js
+Configure Apollo Provider and Redux Provider.
+Handle Loading and Error States
+Use useQuery()’s loading and error properties for UI feedback.
+
+8. Testing and Deployment (All)
+Goal: Test the app and deploy to AWS/Vercel.
+
+Steps overview:
+Write Unit & Integration Tests
+Use Jest and React Testing Library for frontend tests.
+Use Mocha/Chai for backend testing.
+Set Up CI/CD Pipelines
+Use GitHub Actions to automate testing and deployments.
+
+```
