@@ -56,3 +56,4 @@ function BoardList(){
         </div>
     )
 }
+export default BoardList
