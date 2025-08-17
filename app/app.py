@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from schemas import *
 import json
 from pathlib import Path
@@ -40,6 +40,33 @@ async def startup():
 async def health():
     return {"status": "ok"}
 
+"""
+FOR MELVIN:
+Hey twin :~), make sure your endpoints are defined 
+below this line and above the green dashes below so we 
+all know who worked on what. I understand my coding style 
+is a bit rudimentary but that's because this is a prototype 
+I am keeping my code and yours divided by borders so that
+we can discuss integrating our code blocks over a google meet. So far I only have post 
+and get endpoints but thats because I had to start from scratch again after an oversight.
+
+Your tasks:
+[]create endpoints for creating, editing, deleting, and fetching users
+[]for user account creation use passlib.context and 
+import CryptContext to use bcrypt to hash passwords before they are stored
+[]create a biderectional relationship between users and the posts
+each post already has a "user_id" field
+
+--Tata
+"""
+
+
+
+"""
+Tata's endpoints below
+--------------------------------------------------------
+"""
+
 #endpoints related to boards
 @app.get("/")
 async def get_data():
@@ -51,9 +78,11 @@ async def get_data():
 async def post_board(payload: BoardCreate):
     data = load_data()
 
+    next_id = max([b["id"] for b in data["boards"]], default=0) + 1
     new_board = {
+        "id": next_id,
         "name": payload.name,
-        "description": payload.name,
+        "description": payload.description,
     }
     data["boards"].append(new_board)
 
@@ -63,6 +92,67 @@ async def post_board(payload: BoardCreate):
 @app.get("/getboards")
 async def get_boards():
     data = load_data()
+
+    for board in data["boards"]:
+        board_posts = [p for p in data["posts"] if p["board_id"] == board["id"]]
+        board["posts"] = board_posts
+        
     return {"boards": data["boards"]}
 
+#endpoints for posts  
+@app.get("/getposts")
+async def get_posts():
+    data = load_data()
 
+    for post in data["posts"]:
+        post_comments = [c for c in data["comments"] if c["post_id"] == post["id"]]
+        post["comments"] = post_comments
+
+    return {"posts": data["posts"]}
+
+@app.post("/posts", response_model=Post)
+async def create_post(payload: PostCreate):
+    data = load_data()
+
+    next_id = max([p["id"] for p in data["posts"]], default=0) + 1
+
+    new_post = {
+        "id": next_id,
+        "title": payload.title,
+        "body": payload.body,
+        "board_id": 2, #logic will be added later
+        "created_at": str(date.today()),
+        "votes": 0,
+        "user_id": 1, #place holder
+        "comments":[]
+    }
+
+    data["posts"].append(new_post)
+
+    
+    save_data(data)
+    return new_post
+
+#endpoints for comments 
+@app.post("/comments", response_model=Comment)
+async def create_comment(payload: CommentCreate):
+    data = load_data()
+
+    next_comment_id = max([c["id"] for c in data["comments"]], default=0) + 1
+    new_comment = {
+            "id": next_comment_id,
+            "body": payload.body,
+            "post_id": 1, #placeholder
+            "created_at": str(date.today()),
+            "votes": 0,
+            "user_id": 1
+            }
+    data["comments"].append(new_comment)
+    save_data(data)
+
+    return new_comment
+
+"""
+TODO for Tata:
+[]create a bidirectional relationship between comments and replies
+"""
