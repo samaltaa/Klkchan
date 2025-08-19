@@ -2,6 +2,29 @@ from pydantic import BaseModel, EmailStr
 from datetime import date
 from typing import List, Optional 
 
+
+# User Schemas
+class UserCreate(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+
+class User(BaseModel):
+    id: int
+    username: str
+    email: EmailStr
+    posts: List[int] = []   # IDs de los posts que le pertenecen
+
+    class Config:
+        from_attributes = True
+
+
+
 # Board schemas
 class BoardCreate(BaseModel):
     name: str
@@ -13,16 +36,6 @@ class Board(BoardCreate):
     class Config:
         from_attributes = True
 
-# User schemas  
-class UserCreate(BaseModel):
-    username: str
-    email: EmailStr
-    password: str
-
-class User(BaseModel):
-    id: int
-    username: str
-    email: EmailStr
     
     class Config:
         from_attributes = True
@@ -46,10 +59,17 @@ class Comment(CommentBase):
 
 # Post schemas
 class PostCreate(BaseModel):
-    title: str | None = None
+    title: str
     body: str
     board_id: int
+    user_id: int 
     comments: List[CommentBase] = []  # Changed from CommentCreate to CommentBase
+
+    
+class PostUpdate(BaseModel):
+    title: Optional[str] = None
+    body: Optional[str] = None
+    board_id: Optional[int] = None
 
 class Post(BaseModel):
     id: int
@@ -61,8 +81,6 @@ class Post(BaseModel):
     user_id: int
     comments: List[Comment] = []
 
-    class Config:
-        from_attributes = True
 
 # Reply schemas
 class ReplyCreate(BaseModel):

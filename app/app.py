@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
-from schemas import *
+from app.schemas import *
+from app.routers import users
 import json
 from pathlib import Path
 
@@ -10,12 +11,15 @@ this will be the best practice since it keeps the folder
 structure consistent 
 """
 
-BASE_DIR = Path(__file__).resolve().parent.parent #efining parent directory 
+BASE_DIR = Path(__file__).resolve().parent.parent #defining parent directory 
 
 DATA_FILE = Path(__file__).resolve().parent / "data" / "data.json" #pointing to the data file and directory 
 DATA_FILE.parent.mkdir(exist_ok=True)
 
 app = FastAPI()
+
+app.include_router(users.router, prefix="/users", tags=["Users"])
+
 
 #function for getting the data from the json file 
 def load_data():
@@ -41,6 +45,20 @@ async def health():
     return {"status": "ok"}
 
 """
+
+
+FOR SAMIRA:
+
+# - Implementé servicios CRUD para Users y Posts.
+# - En create_post() actualizo automáticamente la lista de posts del usuario (relación bidireccional).
+# - En delete_post() limpio la relación en los usuarios.
+# - Todos los cambios persisten en data.json.
+# - Todos los endpoints de Users listos (CRUD).
+# - Implementé bcrypt para hashear contraseñas al crear usuario.
+# - También en UPDATE: si el password cambia, vuelve a guardarse hasheado.
+# - Los responses no exponen la contraseña (solo datos públicos)
+
+
 FOR MELVIN:
 Hey twin :~), make sure your endpoints are defined 
 below this line and above the green dashes below so we 

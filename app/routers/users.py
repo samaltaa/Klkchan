@@ -1,40 +1,55 @@
-from fastapi import APIRouter, HTTPException,Body
-from ..schemas import User, UserCreate
+from fastapi import APIRouter, HTTPException
+from passlib.context import CryptContext
+from app.schemas import User, UserCreate, UserUpdate
+from app.services import get_users, get_user, create_user, update_user, delete_user
 
-users: list[User] = []
+router = APIRouter(
+    prefix="/users",
+    tags=["Users"]
+)
 
-users_router = APIRouter(prefix="/users", tags=["users"])
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-@users_router.get("/", response_model=list[User])
+#  helper
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+# GET all users
+@router.get("/", response_model=list[User])
 def read_users():
-    return users
+    return get_users()
 
-@users_router.post("/", response_model=User, status_code=201)
-def create_user(user: UserCreate):
-    new_id = len(users) + 1
-    new_user = User(id=new_id, **user.dict())
-    users.append(new_user)
+# GET single user
+@router.get("/{user_id}", response_model=User)
+def read_user(user_id: int):
+    user = get_user(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="usuario no existe")
+    return user
+
+# CREATE user
+@router.post("/", response_model=User)
+def create_new_user(user: UserCreate):
+    user_dict = user.dict()
+    user_dict["password"] = hash_password(user.password)  # 🔐 bcrypt
+    new_user = create_user(user_dict)
     return new_user
 
-@users_router.get("/{user_id}", response_model=User)
-def get_user(user_id: int):
-    for u in users:
-        if u.id == user_id:
-            return u
-    raise HTTPException(404, "Usuario no encontrado")
+# UPDATE user
+@router.put("/{user_id}", response_model=User)
+def update_existing_user(user_id: int, updates: UserUpdate):
+    updates_dict = updates.dict(exclude_unset=True)  # solo campos enviados
+    if "password" in updates_dict and updates_dict["password"] is not None:
+        updates_dict["password"] = hash_password(updates_dict["password"])
+    updated = update_user(user_id, updates_dict)
+    if not updated:
+        raise HTTPException(status_code=404, detail="usuario no existe")
+    return updated
 
-@users_router.put("/{user_id}", response_model=User)
-def update_user(user_id: int, user: UserCreate):
-    for idx, u in enumerate(users):
-        if u.id == user_id:
-            updated = User(id=user_id, **user.dict())
-            users[idx] = updated
-            return updated
-    raise HTTPException(404, "Usuario no encontrado")
-
-@users_router.delete("/{user_id}", response_model=User)
-def delete_user(user_id: int):
-    for idx, u in enumerate(users):
-        if u.id == user_id:
-            return users.pop(idx)
-    raise HTTPException(404, "Usuario no encontrado")
+# DELETE user
+@router.delete("/{user_id}")
+def delete_existing_user(user_id: int):
+    success = delete_user(user_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="usuario no existe")
+    return {"status": "success", "message": f"Usuario {user_id} eliminado"}
