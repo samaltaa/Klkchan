@@ -69,7 +69,7 @@ def create_post(post: dict):
 
     data["posts"].append(post)
 
-    # 🚀 aquí actualizamos al usuario con el nuevo post
+    # aquí actualizamos al usuario con el nuevo post
     for u in data["users"]:
         if u["id"] == post["user_id"]:
             u["posts"].append(post["id"])
@@ -90,7 +90,7 @@ def delete_post(post_id: int):
     data = load_data()
     data["posts"] = [p for p in data["posts"] if p["id"] != post_id]
 
-    # 🚀 limpiar relación en los usuarios
+    # limpiar relación en los usuarios
     for u in data["users"]:
         if post_id in u["posts"]:
             u["posts"].remove(post_id)
