@@ -27,7 +27,9 @@ def get_user(user_id: int):
 
 def create_user(user: dict):
     data = load_data()
-    user["id"] = len(data["users"]) + 1
+    # ✅ ID incremental seguro
+    next_id = max([u["id"] for u in data["users"]], default=0) + 1
+    user["id"] = next_id
     user["posts"] = []  # importante
     data["users"].append(user)
     save_data(data)
@@ -62,14 +64,16 @@ def get_post(post_id: int):
 
 def create_post(post: dict):
     data = load_data()
-    post["id"] = len(data["posts"]) + 1
+    # ✅ ID incremental seguro
+    next_id = max([p["id"] for p in data["posts"]], default=0) + 1
+    post["id"] = next_id
     post["created_at"] = str(date.today())
     post["votes"] = 0
     post["comments"] = []
 
     data["posts"].append(post)
 
-    # aquí actualizamos al usuario con el nuevo post
+
     for u in data["users"]:
         if u["id"] == post["user_id"]:
             u["posts"].append(post["id"])
@@ -90,7 +94,7 @@ def delete_post(post_id: int):
     data = load_data()
     data["posts"] = [p for p in data["posts"] if p["id"] != post_id]
 
-    # limpiar relación en los usuarios
+  
     for u in data["users"]:
         if post_id in u["posts"]:
             u["posts"].remove(post_id)

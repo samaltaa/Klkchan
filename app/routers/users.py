@@ -1,55 +1,69 @@
 from fastapi import APIRouter, HTTPException
+from typing import List
 from passlib.context import CryptContext
 from app.schemas import User, UserCreate, UserUpdate
-from app.services import get_users, get_user, create_user, update_user, delete_user
-
-router = APIRouter(
-    prefix="/users",
-    tags=["Users"]
+from app.services import (
+    get_users,
+    get_user,
+    create_user as service_create_user,
+    update_user as service_update_user,
+    delete_user as service_delete_user,
+    get_posts,
 )
 
+router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-#  helper
+
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
-# GET all users
-@router.get("/", response_model=list[User])
-def read_users():
+
+
+@router.get("/get-users", response_model=List[User])
+def get_users_list():
     return get_users()
 
-# GET single user
-@router.get("/{user_id}", response_model=User)
-def read_user(user_id: int):
+
+@router.get("/get-user/", response_model=User)
+def get_user_by_id(user_id: int):
     user = get_user(user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="usuario no existe")
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    all_posts = get_posts()
+    user["posts"] = [p["id"] for p in all_posts if p["user_id"] == user_id]
     return user
 
-# CREATE user
-@router.post("/", response_model=User)
+
+@router.post("/create-user", response_model=User)
 def create_new_user(user: UserCreate):
     user_dict = user.dict()
-    user_dict["password"] = hash_password(user.password)  # 🔐 bcrypt
-    new_user = create_user(user_dict)
-    return new_user
+    user_dict["password"] = hash_password(user.password)
+    user_dict["posts"] = []
+    return service_create_user(user_dict)
 
-# UPDATE user
-@router.put("/{user_id}", response_model=User)
-def update_existing_user(user_id: int, updates: UserUpdate):
-    updates_dict = updates.dict(exclude_unset=True)  # solo campos enviados
+
+@router.put("/update-user/{user_id}", response_model=User)
+def update_user(user_id: int, updates: UserUpdate):
+
+    updates_dict = updates.dict(exclude_unset=True)
+
     if "password" in updates_dict and updates_dict["password"] is not None:
         updates_dict["password"] = hash_password(updates_dict["password"])
-    updated = update_user(user_id, updates_dict)
+
+    updated = service_update_user(user_id, updates_dict)
     if not updated:
-        raise HTTPException(status_code=404, detail="usuario no existe")
+        raise HTTPException(status_code=404, detail="Usuario no existe")
+
+    all_posts = get_posts()
+    updated["posts"] = [p["id"] for p in all_posts if p["user_id"] == user_id]
     return updated
 
-# DELETE user
-@router.delete("/{user_id}")
+
+@router.delete("/delete-user/")
 def delete_existing_user(user_id: int):
-    success = delete_user(user_id)
+    success = service_delete_user(user_id)
     if not success:
-        raise HTTPException(status_code=404, detail="usuario no existe")
+        raise HTTPException(status_code=404, detail="Usuario no existe")
     return {"status": "success", "message": f"Usuario {user_id} eliminado"}

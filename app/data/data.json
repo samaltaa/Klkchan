@@ -1,180 +1,248 @@
 {
-    "boards": [
-        {
-            "id": 2,
-            "name": "Poli",
-            "description": "Foro para hablar de politica y politicoros."
-        },
-        {
-            "id": 3,
-            "name": "His",
-            "description": "Foro para hablar de historia de todo tipo."
-        },
-        {
-            "id": 4,
-            "name": "B",
-            "description": "Foro para hablar de maquillaje, belleza, skin care etc."
-        },
-        {
-            "id": 5,
-            "name": "R",
-            "description": "Foro para hablar de carros"
-        },
-        {
-            "id": 6,
-            "name": "melvin01rd",
-            "description": "test"
-        }
-    ],
-    "users": [
-        {
-            "username": "jonh doe",
-            "email": "user@gmail.com",
-            "password": "$2b$12$rfjj2kIEouV87Y.GoZum3e5ukK3pkfC94HYfRJKpJDs.V0FQpPSXi",
-            "id": 1,
-            "posts": []
-        },
-        {
-            "username": "sammy",
-            "email": "sammy@gmail.com",
-            "password": "$2b$12$BOZyzCz.unHflQsgLsa7fexcjok8pfU08hwZZfzi25TPWT2j4ItuS",
-            "id": 2,
-            "posts": []
-        },
-        {
-            "username": "melvin1234",
-            "email": "mel@gmail.com",
-            "password": "$2b$12$c4juFwdiFopm1kdmysR9/OfCG2tILkKfQkEr9yuJHzg5950gf.OjW",
-            "id": 3,
-            "posts": []
-        },
-        {
-            "username": "altagracia",
-            "email": "highgrace@hotmail.com",
-            "password": "$2b$12$JeRBBBpqJwMF64KlCle4muYLKzZOBtp9ApEHY11d76bqlmBdRQ772",
-            "id": 4,
-            "posts": []
-        },
-        {
-            "username": "amix",
-            "email": "amix@hotmail.com",
-            "password": "$2b$12$9rrjTfK5HcPWBYq4HtTM4OdwwRplUIxO1jadnGJ/RUOt5dW/mum2y",
-            "id": 5,
-            "posts": []
-        },
-        {
-            "username": "jonh connor",
-            "email": "terminatorZero@gmail.com",
-            "password": "$2b$12$jNv9i.8NOYpja6DGIqqHeOWYsunJ77qkforB55rmD/oinkhRX/7nq",
-            "id": 6,
-            "posts": []
-        },
-        {
-            "username": "jonh connor",
-            "email": "terminatorZero@gmail.com",
-            "password": "$2b$12$oa0aQ.2K6p3asaldTYmKLuM4cJxTKPOfu4lQnIpA/owdevplYgh9y",
-            "id": 7,
-            "posts": []
-        },
-        {
-            "username": "melvin01rd",
-            "email": "mel1234@gmail.com",
-            "password": "$2b$12$g57kqJ085otnerXlhoNGh.3LMv1LoRN8kY4XaO1keN6f1n9.UClpG",
-            "id": 8,
-            "posts": []
-        },
-        {
-            "username": "luciano",
-            "email": "aloquetiao@hotmail.com",
-            "password": "$2b$12$iTo1rXjskNkkZVW7Da116O.jroKM9WcPrJ8v5iMcW229ngQuiU.zy",
-            "id": 9,
-            "posts": []
-        },
-        {
-            "username": "luciano",
-            "email": "aloquetiao@hotmail.com",
-            "password": "$2b$12$FJ2o.vHj1ZgfGMIN2jcsCeIvyH2mqcByS3yO8drkqo0SB75k06J4K",
-            "id": 10,
-            "posts": []
-        },
-        {
-            "username": "luciano",
-            "email": "aloquetiao@hotmail.com",
-            "password": "$2b$12$9UcnJjOkzpFnDjvT0pyLneWRJKwjz8Yc/UwdJeOhcgTFPGtLLRQjK",
-            "id": 11,
-            "posts": []
-        },
-        {
-            "username": "Donald Trump",
-            "email": "cacodemuneca@hotmail.com",
-            "password": "helooi45555",
-            "id": 12,
-            "posts": []
-        },
-        {
-            "username": "Donald Trump",
-            "email": "cacodemuneca3@hotmail.com",
-            "password": "helooi45555",
-            "id": 13,
-            "posts": []
-        },
-        {
-            "username": "Astrid",
-            "email": "Astrid01rd@gmail.com",
-            "password": "$2b$12$sko1X.gXOtTW.UiCwtAgK.YBdWCdpCI9NbXNJV6YSNEOdtrR8/VLu",
-            "id": 14,
-            "posts": []
-        }
-    ],
-    "posts": [
-        {
-            "id": 1,
-            "title": "Primer Post",
-            "body": "Probando Probrando esto va para la historia",
-            "board_id": 2,
-            "created_at": "2025-08-17",
-            "votes": 0,
-            "user_id": 1,
-            "comments": []
-        },
-        {
-            "id": 2,
-            "title": "prueba bidireccional",
-            "body": "sera verdad que va funcionar?",
-            "board_id": 2,
-            "created_at": "2025-08-18",
-            "votes": 0,
-            "user_id": 1,
-            "comments": []
-        },
-        {
-            "id": 3,
-            "title": "prueba  test 2",
-            "body": "pruebas bidireccionar",
-            "board_id": 2,
-            "created_at": "2025-08-18",
-            "votes": 0,
-            "user_id": 1,
-            "comments": []
-        }
-    ],
-    "comments": [
-        {
-            "id": 1,
-            "body": "primer comentario",
-            "post_id": 1,
-            "created_at": "2025-08-17",
-            "votes": 0,
-            "user_id": 1
-        },
-        {
-            "id": 2,
-            "body": "Segundo comentario, probando",
-            "post_id": 1,
-            "created_at": "2025-08-17",
-            "votes": 0,
-            "user_id": 1
-        }
-    ],
-    "replies": []
+  "boards": [
+    {
+      "id": 2,
+      "name": "Poli",
+      "description": "Foro para hablar de politica y politicoros."
+    },
+    {
+      "id": 3,
+      "name": "His",
+      "description": "Foro para hablar de historia de todo tipo."
+    },
+    {
+      "id": 4,
+      "name": "B",
+      "description": "Foro para hablar de maquillaje, belleza, skin care etc."
+    },
+    {
+      "id": 5,
+      "name": "R",
+      "description": "Foro para hablar de carros"
+    },
+    {
+      "id": 6,
+      "name": "melvin01rd",
+      "description": "test"
+    }
+  ],
+  "users": [
+    {
+      "username": "jonh doe",
+      "email": "user@gmail.com",
+      "password": "$2b$12$rfjj2kIEouV87Y.GoZum3e5ukK3pkfC94HYfRJKpJDs.V0FQpPSXi",
+      "id": 1,
+      "posts": []
+    },
+    {
+      "username": "sammy",
+      "email": "sammy@gmail.com",
+      "password": "$2b$12$BOZyzCz.unHflQsgLsa7fexcjok8pfU08hwZZfzi25TPWT2j4ItuS",
+      "id": 2,
+      "posts": []
+    },
+    {
+      "username": "melvin1234",
+      "email": "mel@gmail.com",
+      "password": "$2b$12$c4juFwdiFopm1kdmysR9/OfCG2tILkKfQkEr9yuJHzg5950gf.OjW",
+      "id": 3,
+      "posts": []
+    },
+    {
+      "username": "altagracia",
+      "email": "highgrace@hotmail.com",
+      "password": "$2b$12$JeRBBBpqJwMF64KlCle4muYLKzZOBtp9ApEHY11d76bqlmBdRQ772",
+      "id": 4,
+      "posts": []
+    },
+    {
+      "username": "amix",
+      "email": "amix@hotmail.com",
+      "password": "$2b$12$9rrjTfK5HcPWBYq4HtTM4OdwwRplUIxO1jadnGJ/RUOt5dW/mum2y",
+      "id": 5,
+      "posts": []
+    },
+    {
+      "username": "jonh connor",
+      "email": "terminatorZero@gmail.com",
+      "password": "$2b$12$jNv9i.8NOYpja6DGIqqHeOWYsunJ77qkforB55rmD/oinkhRX/7nq",
+      "id": 6,
+      "posts": []
+    },
+    {
+      "username": "jonh connor",
+      "email": "terminatorZero@gmail.com",
+      "password": "$2b$12$oa0aQ.2K6p3asaldTYmKLuM4cJxTKPOfu4lQnIpA/owdevplYgh9y",
+      "id": 7,
+      "posts": []
+    },
+    {
+      "username": "melvin01rd",
+      "email": "mel1234@gmail.com",
+      "password": "$2b$12$g57kqJ085otnerXlhoNGh.3LMv1LoRN8kY4XaO1keN6f1n9.UClpG",
+      "id": 8,
+      "posts": []
+    },
+    {
+      "username": "luciano",
+      "email": "aloquetiao@hotmail.com",
+      "password": "$2b$12$iTo1rXjskNkkZVW7Da116O.jroKM9WcPrJ8v5iMcW229ngQuiU.zy",
+      "id": 9,
+      "posts": []
+    },
+    {
+      "username": "luciano",
+      "email": "aloquetiao@hotmail.com",
+      "password": "$2b$12$FJ2o.vHj1ZgfGMIN2jcsCeIvyH2mqcByS3yO8drkqo0SB75k06J4K",
+      "id": 10,
+      "posts": []
+    },
+    {
+      "username": "luciano",
+      "email": "aloquetiao@hotmail.com",
+      "password": "$2b$12$9UcnJjOkzpFnDjvT0pyLneWRJKwjz8Yc/UwdJeOhcgTFPGtLLRQjK",
+      "id": 11,
+      "posts": []
+    },
+    {
+      "username": "Donald Trump",
+      "email": "cacodemuneca@hotmail.com",
+      "password": "helooi45555",
+      "id": 12,
+      "posts": []
+    },
+    {
+      "username": "Donald Trump",
+      "email": "cacodemuneca3@hotmail.com",
+      "password": "helooi45555",
+      "id": 13,
+      "posts": []
+    },
+    {
+      "username": "Astrid",
+      "email": "Astrid01rd@gmail.com",
+      "password": "$2b$12$sko1X.gXOtTW.UiCwtAgK.YBdWCdpCI9NbXNJV6YSNEOdtrR8/VLu",
+      "id": 14,
+      "posts": []
+    },
+    {
+      "username": "Madara",
+      "email": "MadaraUchiha@gmail.com",
+      "password": "$2b$12$SR3065UmNtNNF.VnkcEvye6VhnnaMctQ74iU7SGnz1rgyBRsllbam",
+      "posts": [],
+      "id": 15
+    },
+    {
+      "username": "silksong",
+      "email": "silksong@gmail.com",
+      "password": "$2b$12$z3NuXGIbtcrKi/LOm4uhuuF6BqG8ifbc/OCSbI/hlRHDlWwQpo5EW",
+      "posts": [],
+      "id": 16
+    },
+    {
+      "username": "silksongupdate",
+      "email": "silksong2@gmail.com",
+      "password": "$2b$12$qMfVW1QSBaBidkHYV6J6u.rg5JfWCBEwXsWvdrtsedSJ0mD//TH2G",
+      "posts": [],
+      "id": 17
+    },
+    {
+      "username": "silksong4",
+      "email": "silksong4@gmail.com",
+      "password": "$2b$12$k3cq3TEEdx/kjuwBsFYhXe6Z//GBLbMwsYrWwWZiIpOBFUK2NxbnG",
+      "posts": [],
+      "id": 19
+    }
+  ],
+  "posts": [
+    {
+      "id": 1,
+      "title": "Primer Post",
+      "body": "Probando Probrando esto va para la historia",
+      "board_id": 2,
+      "created_at": "2025-08-17",
+      "votes": 0,
+      "user_id": 1,
+      "comments": []
+    },
+    {
+      "id": 2,
+      "title": "prueba bidireccional",
+      "body": "sera verdad que va funcionar?",
+      "board_id": 2,
+      "created_at": "2025-08-18",
+      "votes": 0,
+      "user_id": 1,
+      "comments": []
+    },
+    {
+      "id": 3,
+      "title": "prueba  test 2",
+      "body": "pruebas bidireccionar",
+      "board_id": 2,
+      "created_at": "2025-08-18",
+      "votes": 0,
+      "user_id": 1,
+      "comments": []
+    },
+    {
+      "id": 4,
+      "title": "La Para de tu coro",
+      "body": "Madara",
+      "board_id": 2,
+      "created_at": "2025-08-22",
+      "votes": 0,
+      "user_id": 1,
+      "comments": []
+    },
+    {
+      "id": 5,
+      "title": "mi primer post como  bimbolo",
+      "body": "big dick mother fucker",
+      "board_id": 2,
+      "created_at": "2025-08-22",
+      "votes": 0,
+      "user_id": 1,
+      "comments": []
+    },
+    {
+      "id": 6,
+      "title": "post  bimbolo prueba",
+      "body": "callese que usted no sabe na bajo a caga",
+      "board_id": 2,
+      "created_at": "2025-08-22",
+      "votes": 0,
+      "user_id": 1,
+      "comments": []
+    },
+    {
+      "id": 7,
+      "title": "prueba viernes 22 de agosto",
+      "body": "probar una api endpoint por endpoint no es facil ni es un cachu",
+      "board_id": 2,
+      "created_at": "2025-08-22",
+      "votes": 0,
+      "user_id": 1,
+      "comments": []
+    }
+  ],
+  "comments": [
+    {
+      "id": 1,
+      "body": "primer comentario",
+      "post_id": 1,
+      "created_at": "2025-08-17",
+      "votes": 0,
+      "user_id": 1
+    },
+    {
+      "id": 2,
+      "body": "Segundo comentario, probando",
+      "post_id": 1,
+      "created_at": "2025-08-17",
+      "votes": 0,
+      "user_id": 1
+    }
+  ],
+  "replies": []
 }
