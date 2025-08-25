@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from app.schemas import *
-from app.routers import users
+from schemas import *
 import json
 from pathlib import Path
 
@@ -17,9 +16,6 @@ DATA_FILE = Path(__file__).resolve().parent / "data" / "data.json" #pointing to 
 DATA_FILE.parent.mkdir(exist_ok=True)
 
 app = FastAPI()
-
-app.include_router(users.router, prefix="/users", tags=["Users"])
-
 
 #function for getting the data from the json file 
 def load_data():
