@@ -1,8 +1,23 @@
- fastapi 
- uvicorn[standard] 
- python-dotenv
- sqlalchemy 
- email-validator 
- passlib[bcrypt] 
- python-multipart 
- pydantic[email]
+# Core framework
+fastapi
+uvicorn[standard]
+
+# ORM
+sqlalchemy
+
+# Data validation
+pydantic[email]
+email-validator
+
+# Auth & Security
+passlib[bcrypt]
+python-jose[cryptography]
+python-multipart   # para forms / upload de archivos
+
+# Testing core
+pytest
+pytest-asyncio
+coverage
+
+# Config
+python-dotenv

@@ -1,7 +1,6 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from datetime import date
-from typing import List, Optional 
-
+from typing import List, Optional
 
 # User Schemas
 class UserCreate(BaseModel):
@@ -18,12 +17,10 @@ class User(BaseModel):
     id: int
     username: str
     email: EmailStr
-    posts: List[int] = []   # IDs de los posts que le pertenecen
+    posts: List[int] = Field(default_factory=list)  # ✅ evitar mutable default
 
     class Config:
         from_attributes = True
-
-
 
 # Board schemas
 class BoardCreate(BaseModel):
@@ -32,15 +29,11 @@ class BoardCreate(BaseModel):
 
 class Board(BoardCreate):
     id: int
-    
-    class Config:
-        from_attributes = True
 
-    
     class Config:
-        from_attributes = True
+        from_attributes = True  # ✅ deja solo uno
 
-# Comment schemas - Define CommentBase first
+# Comment schemas
 class CommentBase(BaseModel):
     body: str
 
@@ -53,7 +46,7 @@ class Comment(CommentBase):
     votes: int
     user_id: int
     post_id: int
-    
+
     class Config:
         from_attributes = True
 
@@ -62,10 +55,9 @@ class PostCreate(BaseModel):
     title: str
     body: str
     board_id: int
-    user_id: int 
-    comments: List[CommentBase] = []  # Changed from CommentCreate to CommentBase
+    user_id: int
+    comments: List[CommentBase] = Field(default_factory=list)  # ✅
 
-    
 class PostUpdate(BaseModel):
     title: Optional[str] = None
     body: Optional[str] = None
@@ -79,8 +71,7 @@ class Post(BaseModel):
     created_at: date
     votes: int
     user_id: int
-    comments: List[Comment] = []
-
+    comments: List[Comment] = Field(default_factory=list)  # ✅
 
 # Reply schemas
 class ReplyCreate(BaseModel):
@@ -92,6 +83,24 @@ class Reply(ReplyCreate):
     created_at: date
     votes: int
     user_id: int
-    
+
+    class Config:
+        from_attributes = True  # ✅ vuelve a ponerlo
+
+# Auth schemas  ✅ nuevos
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+class TokenPayload(BaseModel):
+    sub: Optional[str] = None
+    exp: Optional[int] = None
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: EmailStr
+    posts: List[int] = Field(default_factory=list)
+
     class Config:
         from_attributes = True
