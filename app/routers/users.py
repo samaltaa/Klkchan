@@ -15,7 +15,8 @@ from app.services import (
 )
 from app.utils.security import hash_password
 
-router = APIRouter()
+router = APIRouter(prefix="/users", tags=["Users"])
+
 
 
 @router.get("/me", response_model=User)

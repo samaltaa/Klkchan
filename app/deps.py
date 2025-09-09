@@ -1,34 +1,40 @@
 # app/deps.py
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from typing import Optional
 from app.utils.security import decode_access_token
-from app.services import get_users
+from app.services import get_user_by_id
 
-print("IMPORTANDO deps.py OK")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/Auth/login")
-
-def _find_user_by_username(username: str) -> Optional[dict]:
-    for u in get_users():
-        if u["username"] == username:
-            return u
-    return None
+def _unauthorized(detail: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail=detail,
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
+    """
+    Decodifica el JWT, obtiene el user_id del 'sub' y retorna el usuario actual
+    incluyendo el hash de contraseña (para endpoints como cambio de contraseña).
+    """
     payload = decode_access_token(token)
     if not payload or "sub" not in payload:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido o expirado")
+        raise _unauthorized("Token inválido o expirado")
 
-    user = _find_user_by_username(payload["sub"])
+    try:
+        user_id = int(payload["sub"])
+    except (TypeError, ValueError):
+        raise _unauthorized("Token inválido")
+
+    user = get_user_by_id(user_id)
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no encontrado")
+        raise _unauthorized("Usuario no encontrado")
 
-  
     return {
         "id": user["id"],
         "username": user["username"],
         "email": user["email"],
         "posts": user.get("posts", []),
+        "password": user.get("password"),  # hash
     }

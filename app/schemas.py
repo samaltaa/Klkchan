@@ -17,7 +17,7 @@ class User(BaseModel):
     id: int
     username: str
     email: EmailStr
-    posts: List[int] = Field(default_factory=list)  # ✅ evitar mutable default
+    posts: List[int] = Field(default_factory=list)  
 
     class Config:
         from_attributes = True
@@ -31,7 +31,7 @@ class Board(BoardCreate):
     id: int
 
     class Config:
-        from_attributes = True  # ✅ deja solo uno
+        from_attributes = True  # 
 
 # Comment schemas
 class CommentBase(BaseModel):
@@ -56,7 +56,7 @@ class PostCreate(BaseModel):
     body: str
     board_id: int
     user_id: int
-    comments: List[CommentBase] = Field(default_factory=list)  # ✅
+    comments: List[CommentBase] = Field(default_factory=list)  
 
 class PostUpdate(BaseModel):
     title: Optional[str] = None
@@ -71,7 +71,7 @@ class Post(BaseModel):
     created_at: date
     votes: int
     user_id: int
-    comments: List[Comment] = Field(default_factory=list)  # ✅
+    comments: List[Comment] = Field(default_factory=list)  
 
 # Reply schemas
 class ReplyCreate(BaseModel):
@@ -85,7 +85,7 @@ class Reply(ReplyCreate):
     user_id: int
 
     class Config:
-        from_attributes = True  # ✅ vuelve a ponerlo
+        from_attributes = True  # 
 
 # Auth schemas  ✅ nuevos
 class Token(BaseModel):
@@ -102,5 +102,9 @@ class UserResponse(BaseModel):
     email: EmailStr
     posts: List[int] = Field(default_factory=list)
 
-    class Config:
-        from_attributes = True
+class Config:
+ from_attributes = True
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8)

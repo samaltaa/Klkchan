@@ -52,3 +52,12 @@ def paginate_list(items: list[Any], page: int = 1, limit: int = 10) -> dict:
         "total_pages": (len(items) + limit - 1) // limit,
         "data": data,
     }
+
+
+# 🔹 Normaliza emails a lowercase (evita duplicados por mayúsculas o espacios)
+def normalize_email(email: str) -> str:
+    """
+    Convierte un email a minúsculas y quita espacios.
+    Ejemplo: "  MelVin@KLKCHAN.Dev  " -> "melvin@klkchan.dev"
+    """
+    return email.strip().lower()

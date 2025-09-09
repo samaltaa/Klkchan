@@ -105,20 +105,6 @@
             "posts": []
         },
         {
-            "username": "Donald Trump",
-            "email": "cacodemuneca@hotmail.com",
-            "password": "helooi45555",
-            "id": 12,
-            "posts": []
-        },
-        {
-            "username": "Donald Trump",
-            "email": "cacodemuneca3@hotmail.com",
-            "password": "helooi45555",
-            "id": 13,
-            "posts": []
-        },
-        {
             "username": "Astrid",
             "email": "Astrid01rd@gmail.com",
             "password": "$2b$12$sko1X.gXOtTW.UiCwtAgK.YBdWCdpCI9NbXNJV6YSNEOdtrR8/VLu",
@@ -163,7 +149,7 @@
         {
             "username": "jonh01",
             "email": "jonh01@hotmail.com",
-            "password": "$2b$12$YXfIYPoyREs5joaSSR/mN./FvU/Q3TB9g5SRiZl5FTldmS9SiaNne",
+            "password": "$2b$12$IWQv5G36zWPQZpeDl4A4AegdamZyZI4ddEdEBTKIq4F3us.MKPEsO",
             "posts": [],
             "id": 21
         }

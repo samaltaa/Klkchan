@@ -1,12 +1,11 @@
 # app/app.py
-from fastapi import FastAPI, HTTPException, Depends
-from app.schemas import *
-from app.routers import users
-from app.routers import Auth
-from app.deps import get_current_user
+from fastapi import FastAPI, Depends
 from datetime import date
-import json
-from pathlib import Path
+
+from app.schemas import BoardCreate, PostCreate, CommentCreate, Post, Comment
+from app.deps import get_current_user
+from app.routers import users, auth
+from app.services import load_data, save_data  # ✅ usa SIEMPRE los helpers de services
 
 
 """
@@ -16,43 +15,42 @@ this will be the best practice since it keeps the folder
 structure consistent 
 """
 
-BASE_DIR = Path(__file__).resolve().parent.parent  # defining parent directory
+app = FastAPI(
+    title="KLKCHAN API",
+    openapi_tags=[
+        {"name": "Auth", "description": "Registro, login, cambio de contraseña."},
+        {"name": "Users", "description": "Gestión de usuarios."},
+        {"name": "Boards", "description": "Tableros / categorías."},
+        {"name": "Posts", "description": "Publicaciones."},
+        {"name": "Comments", "description": "Comentarios."},
+        {"name": "System", "description": "Salud y utilidades del sistema."},
+    ],
+)
 
-DATA_FILE = Path(__file__).resolve().parent / "data" / "data.json"  # pointing to the data file and directory
-DATA_FILE.parent.mkdir(exist_ok=True)
-
-app = FastAPI()
-
-app.include_router(users.router, prefix="/users", tags=["Users"])
-app.include_router(Auth.router, prefix="/Auth", tags=["Auth"])
-
-
-# function for getting the data from the json file
-def load_data():
-    if DATA_FILE.exists():
-        with open(DATA_FILE, "r") as f:
-            return json.load(f)
-    # fallback initial data if file not found
-    return {"boards": [], "users": [], "posts": [], "comments": [], "replies": []}
-
-
-# function for saving data in the json file
-def save_data(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=2)
+# ⚠️ auth ya tiene prefix="/auth" dentro del router; users puede traer su prefix desde su archivo.
+app.include_router(auth.router)
+app.include_router(users.router)
 
 
 @app.on_event("startup")
 async def startup():
-    # Initialize JSON file if it doesn't exist
-    if not DATA_FILE.exists():
-        initial_data = {"boards": [], "users": [], "posts": [], "comments": [], "replies": []}
-        save_data(initial_data)
+    """
+    Fuerza la creación de app/data/data.json si no existe,
+    usando la lógica robusta de services.
+    """
+    _ = load_data()
 
 
-@app.get("/health")
+# ------------------- System -------------------
+@app.get("/health", tags=["System"])
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/", tags=["System"])
+async def get_data():
+    data = load_data()
+    return data
 
 
 """
@@ -60,15 +58,8 @@ Tata's endpoints below
 --------------------------------------------------------
 """
 
-
-# endpoints related to boards
-@app.get("/")
-async def get_data():
-    data = load_data()
-    return data
-
-
-@app.post("/postboard")
+# ------------------- Boards -------------------
+@app.post("/postboard", tags=["Boards"])
 async def post_board(payload: BoardCreate):
     data = load_data()
 
@@ -84,7 +75,7 @@ async def post_board(payload: BoardCreate):
     return data
 
 
-@app.get("/getboards")
+@app.get("/getboards", tags=["Boards"])
 async def get_boards():
     data = load_data()
 
@@ -95,8 +86,8 @@ async def get_boards():
     return {"boards": data["boards"]}
 
 
-# endpoints for posts
-@app.get("/getposts")
+# ------------------- Posts -------------------
+@app.get("/getposts", tags=["Posts"])
 async def get_posts():
     data = load_data()
 
@@ -107,7 +98,7 @@ async def get_posts():
     return {"posts": data["posts"]}
 
 
-@app.post("/posts", response_model=Post)
+@app.post("/posts", response_model=Post, tags=["Posts"])
 async def create_post(payload: PostCreate, current_user: dict = Depends(get_current_user)):
     """
     Crea un post con el user_id tomado del token (current_user).
@@ -141,8 +132,8 @@ async def create_post(payload: PostCreate, current_user: dict = Depends(get_curr
     return new_post
 
 
-# endpoints for comments
-@app.post("/comments", response_model=Comment)
+# ------------------- Comments -------------------
+@app.post("/comments", response_model=Comment, tags=["Comments"])
 async def create_comment(payload: CommentCreate, current_user: dict = Depends(get_current_user)):
     """
     Crea un comentario con el user_id del token.
