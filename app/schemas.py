@@ -1,8 +1,15 @@
-from pydantic import BaseModel, EmailStr, Field
+# app/schemas.py
 from datetime import date
 from typing import List, Optional
 
-# User Schemas
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
+
+# Base para modelos que reciben datos desde objetos/ORM
+class OrmBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+# ─────────────────────────────────────────────────────────
+# Users
 class UserCreate(BaseModel):
     username: str
     email: EmailStr
@@ -13,57 +20,58 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     password: Optional[str] = None
 
-class User(BaseModel):
+class User(OrmBase):
     id: int
     username: str
     email: EmailStr
-    posts: List[int] = Field(default_factory=list)  
+    posts: List[int] = Field(default_factory=list)
 
-    class Config:
-        from_attributes = True
+# Respuesta pública (similar a User, pero explícita)
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: EmailStr
+    posts: List[int] = Field(default_factory=list)
 
-# Board schemas
+# ─────────────────────────────────────────────────────────
+# Boards
 class BoardCreate(BaseModel):
     name: str
     description: str
 
-class Board(BoardCreate):
+class Board(OrmBase, BoardCreate):
     id: int
 
-    class Config:
-        from_attributes = True  # 
-
-# Comment schemas
+# ─────────────────────────────────────────────────────────
+# Comments
 class CommentBase(BaseModel):
     body: str
 
 class CommentCreate(CommentBase):
     post_id: int
 
-class Comment(CommentBase):
+class Comment(OrmBase, CommentBase):
     id: int
     created_at: date
     votes: int
     user_id: int
     post_id: int
 
-    class Config:
-        from_attributes = True
-
-# Post schemas
+# ─────────────────────────────────────────────────────────
+# Posts
 class PostCreate(BaseModel):
     title: str
     body: str
     board_id: int
     user_id: int
-    comments: List[CommentBase] = Field(default_factory=list)  
+    comments: List[CommentBase] = Field(default_factory=list)
 
 class PostUpdate(BaseModel):
     title: Optional[str] = None
     body: Optional[str] = None
     board_id: Optional[int] = None
 
-class Post(BaseModel):
+class Post(OrmBase):
     id: int
     title: str
     body: str
@@ -71,23 +79,22 @@ class Post(BaseModel):
     created_at: date
     votes: int
     user_id: int
-    comments: List[Comment] = Field(default_factory=list)  
+    comments: List[Comment] = Field(default_factory=list)
 
-# Reply schemas
+# ─────────────────────────────────────────────────────────
+# Replies
 class ReplyCreate(BaseModel):
     body: str
     comment_id: int
 
-class Reply(ReplyCreate):
+class Reply(OrmBase, ReplyCreate):
     id: int
     created_at: date
     votes: int
     user_id: int
 
-    class Config:
-        from_attributes = True  # 
-
-# Auth schemas  ✅ nuevos
+# ─────────────────────────────────────────────────────────
+# Auth / Tokens
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -96,15 +103,27 @@ class TokenPayload(BaseModel):
     sub: Optional[str] = None
     exp: Optional[int] = None
 
-class UserResponse(BaseModel):
-    id: int
-    username: str
-    email: EmailStr
-    posts: List[int] = Field(default_factory=list)
-
-class Config:
- from_attributes = True
-
+# ─────────────────────────────────────────────────────────
+# Password flows
 class ChangePasswordRequest(BaseModel):
     old_password: str = Field(..., min_length=1)
-    new_password: str = Field(..., min_length=8)
+    new_password: str = Field(..., min_length=8)  # o 12 si subes política
+
+# Logout
+class LogoutResponse(BaseModel):
+    detail: str = "Logged out"
+
+# Forgot password
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ForgotPasswordResponse(BaseModel):
+    detail: str = "If the email exists, reset instructions were sent"
+
+# Reset password
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(..., description="Token de reseteo recibido por email")
+    new_password: str = Field(..., min_length=12, max_length=128)
+
+class ResetPasswordResponse(BaseModel):
+    detail: str = "Password updated"

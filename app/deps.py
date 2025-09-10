@@ -1,10 +1,15 @@
 # app/deps.py
+from typing import Any, Dict, Sequence
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+
 from app.utils.security import decode_access_token
 from app.services import get_user_by_id
+from app.utils.roles import Role  
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
 
 def _unauthorized(detail: str) -> HTTPException:
     return HTTPException(
@@ -13,15 +18,28 @@ def _unauthorized(detail: str) -> HTTPException:
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
+
+def get_current_payload(token: str = Depends(oauth2_scheme)) -> Dict[str, Any]:
     """
-    Decodifica el JWT, obtiene el user_id del 'sub' y retorna el usuario actual
-    incluyendo el hash de contraseña (para endpoints como cambio de contraseña).
+    Valida y decodifica el access token. Devuelve el payload crudo.
+    Espera al menos: {'sub': <user_id>, 'exp': ..., 'roles': [...], 'scopes': [...]}
     """
-    payload = decode_access_token(token)
-    if not payload or "sub" not in payload:
+    try:
+        payload = decode_access_token(token)
+    except Exception:
         raise _unauthorized("Token inválido o expirado")
 
+    if not isinstance(payload, dict) or "sub" not in payload:
+        raise _unauthorized("Token inválido")
+
+    return payload
+
+
+async def get_current_user(payload: Dict[str, Any] = Depends(get_current_payload)) -> Dict[str, Any]:
+    """
+    Obtiene el usuario actual desde el storage a partir de payload['sub'].
+    NO expone el hash de contraseña.
+    """
     try:
         user_id = int(payload["sub"])
     except (TypeError, ValueError):
@@ -36,5 +54,39 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
         "username": user["username"],
         "email": user["email"],
         "posts": user.get("posts", []),
-        "password": user.get("password"),  # hash
+        "roles": payload.get("roles", ["user"]),
+        "scopes": payload.get("scopes", []),
     }
+
+
+def require_role(*accepted: Role):
+    """
+    Guard de autorización por rol. Ejemplo de uso:
+    @router.get("/admin", dependencies=[Depends(require_role(Role.admin))])
+    """
+    accepted_values = {r.value if isinstance(r, Role) else str(r) for r in accepted}
+
+    def dep(user: Dict[str, Any] = Depends(get_current_user)):
+        roles = set(user.get("roles", []))
+        if roles.isdisjoint(accepted_values):
+            raise HTTPException(status_code=403, detail="Insufficient role")
+        return user
+
+    return dep
+
+
+def require_scopes(required: Sequence[str]):
+    """
+    Guard por scopes granulares. Ejemplo:
+    @router.get("/x", dependencies=[Depends(require_scopes(['mod']))])
+    """
+    required_set = set(required)
+
+    def dep(user: Dict[str, Any] = Depends(get_current_user)):
+        scopes = set(user.get("scopes", []))
+        missing = [s for s in required_set if s not in scopes]
+        if missing:
+            raise HTTPException(status_code=403, detail=f"Missing scopes: {missing}")
+        return user
+
+    return dep

@@ -4,8 +4,8 @@ from datetime import date
 
 from app.schemas import BoardCreate, PostCreate, CommentCreate, Post, Comment
 from app.deps import get_current_user
-from app.routers import users, auth
-from app.services import load_data, save_data  # ✅ usa SIEMPRE los helpers de services
+from app.routers import users, auth ,admin, moderation  
+from app.services import load_data, save_data  
 
 
 """
@@ -18,18 +18,23 @@ structure consistent
 app = FastAPI(
     title="KLKCHAN API",
     openapi_tags=[
-        {"name": "Auth", "description": "Registro, login, cambio de contraseña."},
-        {"name": "Users", "description": "Gestión de usuarios."},
-        {"name": "Boards", "description": "Tableros / categorías."},
-        {"name": "Posts", "description": "Publicaciones."},
+        {"name": "Auth",     "description": "Registro, login, cambio de contraseña."},
+        {"name": "Users",    "description": "Gestión de usuarios."},
+        {"name": "Boards",   "description": "Tableros / categorías."},
+        {"name": "Posts",    "description": "Publicaciones."},
         {"name": "Comments", "description": "Comentarios."},
-        {"name": "System", "description": "Salud y utilidades del sistema."},
+        {"name": "System",   "description": "Salud y utilidades del sistema."},
+        {"name": "Admin",        "description": "Operaciones administrativas."},
+        {"name": "Moderation",   "description": "Cola y acciones de moderación."},
     ],
 )
+
 
 # ⚠️ auth ya tiene prefix="/auth" dentro del router; users puede traer su prefix desde su archivo.
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(admin.router)
+app.include_router(moderation.router)
 
 
 @app.on_event("startup")
