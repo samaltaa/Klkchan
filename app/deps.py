@@ -2,11 +2,11 @@
 from typing import Any, Dict, Sequence
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError  # ✅ captura explícita de errores JWT
 
 from app.utils.security import decode_access_token
 from app.services import get_user_by_id
-from app.utils.roles import Role  
-
+from app.utils.roles import Role
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -26,8 +26,11 @@ def get_current_payload(token: str = Depends(oauth2_scheme)) -> Dict[str, Any]:
     """
     try:
         payload = decode_access_token(token)
-    except Exception:
+    except JWTError:
         raise _unauthorized("Token inválido o expirado")
+    except Exception:
+        # Fallback por si decode_access_token cambia la excepción
+        raise _unauthorized("Token inválido")
 
     if not isinstance(payload, dict) or "sub" not in payload:
         raise _unauthorized("Token inválido")
@@ -35,10 +38,12 @@ def get_current_payload(token: str = Depends(oauth2_scheme)) -> Dict[str, Any]:
     return payload
 
 
-async def get_current_user(payload: Dict[str, Any] = Depends(get_current_payload)) -> Dict[str, Any]:
+async def get_current_user(
+    payload: Dict[str, Any] = Depends(get_current_payload),
+) -> Dict[str, Any]:
     """
     Obtiene el usuario actual desde el storage a partir de payload['sub'].
-    NO expone el hash de contraseña.
+    NO expone el hash de contraseña. Adjunta roles/scopes desde el token.
     """
     try:
         user_id = int(payload["sub"])
@@ -49,6 +54,7 @@ async def get_current_user(payload: Dict[str, Any] = Depends(get_current_payload
     if not user:
         raise _unauthorized("Usuario no encontrado")
 
+    # roles y scopes vienen del JWT; default ya lo pone create_access_token
     return {
         "id": user["id"],
         "username": user["username"],
@@ -61,14 +67,19 @@ async def get_current_user(payload: Dict[str, Any] = Depends(get_current_payload
 
 def require_role(*accepted: Role):
     """
-    Guard de autorización por rol. Ejemplo de uso:
-    @router.get("/admin", dependencies=[Depends(require_role(Role.admin))])
+    Guard de autorización por rol (case-insensitive).
+    Uso típico:
+      @router.get("/x", dependencies=[Depends(require_role(Role.mod, Role.admin))])
     """
-    accepted_values = {r.value if isinstance(r, Role) else str(r) for r in accepted}
+    # accepted puede traer Enum Role o strings; los normalizamos a str lower
+    accepted_values_lc = {
+        (r.value if isinstance(r, Role) else str(r)).lower() for r in accepted
+    }
 
     def dep(user: Dict[str, Any] = Depends(get_current_user)):
-        roles = set(user.get("roles", []))
-        if roles.isdisjoint(accepted_values):
+        roles = user.get("roles", [])
+        roles_lc = {str(r).lower() for r in roles}
+        if roles_lc.isdisjoint(accepted_values_lc):
             raise HTTPException(status_code=403, detail="Insufficient role")
         return user
 
@@ -77,13 +88,14 @@ def require_role(*accepted: Role):
 
 def require_scopes(required: Sequence[str]):
     """
-    Guard por scopes granulares. Ejemplo:
-    @router.get("/x", dependencies=[Depends(require_scopes(['mod']))])
+    Guard por scopes granulares.
+    Ejemplo:
+      @router.get("/x", dependencies=[Depends(require_scopes(['mod']))])
     """
-    required_set = set(required)
+    required_set = {str(s).lower() for s in required}
 
     def dep(user: Dict[str, Any] = Depends(get_current_user)):
-        scopes = set(user.get("scopes", []))
+        scopes = {str(s).lower() for s in user.get("scopes", [])}
         missing = [s for s in required_set if s not in scopes]
         if missing:
             raise HTTPException(status_code=403, detail=f"Missing scopes: {missing}")

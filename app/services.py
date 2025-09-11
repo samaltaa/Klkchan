@@ -2,7 +2,7 @@
 from app.schemas.schemas import User, UserCreate, UserUpdate, Post, PostCreate, PostUpdate
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from app.utils.helpers import normalize_email  # 👈 normalización de correo
 
@@ -10,21 +10,42 @@ from app.utils.helpers import normalize_email  # 👈 normalización de correo
 BASE_DIR = Path(__file__).resolve().parent
 DATA_PATH = BASE_DIR / "data" / "data.json"
 
+# Estructura base para inicializar o recuperar en caso de corrupción de JSON
+EMPTY_STRUCTURE = {
+    "users": [],
+    "posts": [],
+    "boards": [],
+    "comments": [],
+    "replies": [],
+    "moderation": {
+    "reports": [],   # reportes abiertos por usuarios
+    "actions": []    # log de acciones aplicadas por moderadores
+}
+}
+
 def _ensure_data_file():
     DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
     if not DATA_PATH.exists():
         DATA_PATH.write_text(
-            json.dumps(
-                {"users": [], "posts": [], "boards": [], "comments": [], "replies": []},
-                ensure_ascii=False,
-                indent=4,
-            ),
+            json.dumps(EMPTY_STRUCTURE, ensure_ascii=False, indent=4),
             encoding="utf-8",
         )
 
 def load_data():
+    """
+    Carga el JSON. Si está vacío o corrupto, resetea a estructura base y continúa.
+    """
     _ensure_data_file()
-    return json.loads(DATA_PATH.read_text(encoding="utf-8"))
+    try:
+        return json.loads(DATA_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        # Recuperación: reescribir con estructura base
+        DATA_PATH.write_text(
+            json.dumps(EMPTY_STRUCTURE, ensure_ascii=False, indent=4),
+            encoding="utf-8",
+        )
+        # Devolver una copia para evitar mutaciones compartidas
+        return json.loads(json.dumps(EMPTY_STRUCTURE))
 
 def save_data(data):
     _ensure_data_file()
@@ -68,7 +89,13 @@ def create_user(user: dict):
     """
     Crea usuario asumiendo que 'password' ya es un HASH.
     Normaliza 'email' y asegura 'posts'.
+    Valida campos obligatorios: username, email, password.
     """
+    # ✅ Validación mínima (hará verde el test que hoy marcaste xfail)
+    for key in ("username", "email", "password"):
+        if not user.get(key):
+            raise ValueError(f"Missing field: {key}")
+
     data = load_data()
 
     if "email" in user and user["email"] is not None:
@@ -146,7 +173,7 @@ def create_post(post: dict):
     # ✅ ID incremental seguro
     next_id = max([p["id"] for p in data["posts"]], default=0) + 1
     post["id"] = next_id
-    post["created_at"] = datetime.utcnow().isoformat()  # ISO-8601 UTC
+    post["created_at"] = datetime.now(timezone.utc).isoformat()
     post.setdefault("votes", 0)
     post.setdefault("comments", [])
 
@@ -183,3 +210,200 @@ def delete_post(post_id: int):
 
     save_data(data)
     return True
+
+
+# ---------- MODERATION SERVICES ----------
+
+from typing import Optional  # ya lo tienes arriba
+
+def _ensure_moderation_root(data: dict) -> None:
+    data.setdefault("moderation", {})
+    data["moderation"].setdefault("reports", [])
+    data["moderation"].setdefault("actions", [])
+
+
+def _next_id(seq, key="id") -> int:
+    return max([x.get(key, 0) for x in seq], default=0) + 1
+
+
+def _get_entity(data: dict, target_type: str, target_id: int) -> Optional[dict]:
+    """
+    Devuelve el dict del recurso según tipo e id.
+    target_type: 'user' | 'post' | 'comment'
+    """
+    tt = str(target_type).lower()
+    if tt == "user":
+        return next((u for u in data["users"] if u.get("id") == target_id), None)
+    if tt == "post":
+        return next((p for p in data["posts"] if p.get("id") == target_id), None)
+    if tt == "comment":
+        return next((c for c in data["comments"] if c.get("id") == target_id), None)
+    return None
+
+
+def moderation_report_create(
+    reporter_id: int,
+    target_type: str,
+    target_id: int,
+    reason: str = ""
+) -> dict:
+    """
+    Crea un reporte con estado 'pending'. Si el objetivo no existe,
+    marca 'invalid_target=True' para que el mod lo cierre.
+    """
+    data = load_data()
+    _ensure_moderation_root(data)
+
+    report = {
+        "id": _next_id(data["moderation"]["reports"]),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "reporter_id": reporter_id,
+        "target_type": target_type,
+        "target_id": target_id,
+        "reason": reason or "",
+        "status": "pending",  # pending | closed
+        "invalid_target": _get_entity(data, target_type, target_id) is None,
+    }
+    data["moderation"]["reports"].append(report)
+    save_data(data)
+    return report
+
+
+def moderation_queue_list(status: Optional[str] = "pending") -> list[dict]:
+    """
+    Lista la cola de moderación (por defecto solo 'pending').
+    """
+    data = load_data()
+    _ensure_moderation_root(data)
+    reports = data["moderation"]["reports"]
+    if status:
+        return [r for r in reports if r.get("status") == status]
+    return reports
+
+
+def moderation_action_apply(
+    moderator_id: int,
+    target_type: str,
+    target_id: int,
+    action: str,
+    reason: str = "",
+    report_id: Optional[int] = None,
+) -> dict:
+    """
+    Acciones soportadas:
+      - remove: marca removed=True (si es post, también locked=True)
+      - approve: cierra el reporte (no toca la entidad)
+      - lock: post.locked=True
+      - sticky: post.sticky=True
+      - ban_user: user.banned=True
+      - shadowban: user.shadowbanned=True
+    Devuelve {'applied': True} o {'applied': False, 'error': '...'}
+    """
+    act = str(action).lower()
+    data = load_data()
+    _ensure_moderation_root(data)
+
+    entity = _get_entity(data, target_type, target_id)
+
+    # Validaciones base
+    if act not in {"remove", "approve", "lock", "sticky", "ban_user", "shadowban"}:
+        result = {"applied": False, "error": "unknown_action"}
+    elif act != "approve" and entity is None:
+        # Acciones que mutan entidad requieren que exista
+        result = {"applied": False, "error": "target_not_found"}
+    else:
+        # Ejecutar
+        if act == "remove":
+            entity["removed"] = True
+            if target_type == "post":
+                entity["locked"] = True
+
+        elif act == "approve":
+            pass  # solo cerrar reporte si corresponde
+
+        elif act == "lock":
+            if target_type != "post":
+                result = {"applied": False, "error": "lock_only_for_posts"}
+                _log_moderation_action(data, moderator_id, target_type, target_id, act, reason, False, result["error"], report_id)
+                save_data(data)
+                return result
+            entity["locked"] = True
+
+        elif act == "sticky":
+            if target_type != "post":
+                result = {"applied": False, "error": "sticky_only_for_posts"}
+                _log_moderation_action(data, moderator_id, target_type, target_id, act, reason, False, result["error"], report_id)
+                save_data(data)
+                return result
+            entity["sticky"] = True
+
+        elif act == "ban_user":
+            if target_type != "user":
+                result = {"applied": False, "error": "ban_only_for_users"}
+                _log_moderation_action(data, moderator_id, target_type, target_id, act, reason, False, result["error"], report_id)
+                save_data(data)
+                return result
+            entity["banned"] = True
+
+        elif act == "shadowban":
+            if target_type != "user":
+                result = {"applied": False, "error": "shadowban_only_for_users"}
+                _log_moderation_action(data, moderator_id, target_type, target_id, act, reason, False, result["error"], report_id)
+                save_data(data)
+                return result
+            entity["shadowbanned"] = True
+
+        # aplicado OK
+        result = {"applied": True}
+
+        # Si vino report_id, cerramos el reporte
+        if report_id is not None:
+            for r in data["moderation"]["reports"]:
+                if r.get("id") == report_id:
+                    r["status"] = "closed"
+                    r["closed_at"] = datetime.now(timezone.utc).isoformat()
+                    r["closed_by"] = moderator_id
+                    r["resolution"] = act
+                    break
+
+    # Log persistente del intento (éxito o error)
+    _log_moderation_action(
+        data,
+        moderator_id,
+        target_type,
+        target_id,
+        act,
+        reason,
+        result.get("applied", False),
+        result.get("error"),
+        report_id,
+    )
+    save_data(data)
+    return result
+
+
+def _log_moderation_action(
+    data: dict,
+    moderator_id: int,
+    target_type: str,
+    target_id: int,
+    action: str,
+    reason: str,
+    applied: bool,
+    error: Optional[str],
+    report_id: Optional[int],
+) -> None:
+    entry = {
+        "id": _next_id(data["moderation"]["actions"]),
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "moderator_id": moderator_id,
+        "target_type": target_type,
+        "target_id": target_id,
+        "action": action,
+        "reason": reason or "",
+        "applied": applied,
+        "error": error,
+        "report_id": report_id,
+    }
+    data["moderation"]["actions"].append(entry)
+

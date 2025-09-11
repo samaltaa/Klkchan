@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.coverage
+htmlcov/
+tests/_tmp/
+tests/__pycache__/
+tests/test_*.py
+*.ENV
