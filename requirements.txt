@@ -21,3 +21,7 @@ coverage
 
 # Config
 python-dotenv
+
+
+httpx==0.27.*
+

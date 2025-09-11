@@ -30,7 +30,6 @@ def generate_slug(title: str) -> str:
 def sanitize_html(text: str) -> str:
     """
     Elimina etiquetas HTML peligrosas.
-    Útil si dejas que los usuarios manden texto con HTML.
     """
     clean = re.sub(r"<.*?>", "", text)
     return clean.strip()

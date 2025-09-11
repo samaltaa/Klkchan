@@ -1,5 +1,5 @@
 # app/services.py
-from app.schemas import User, UserCreate, UserUpdate, Post, PostCreate, PostUpdate
+from app.schemas.schemas import User, UserCreate, UserUpdate, Post, PostCreate, PostUpdate
 import json
 from pathlib import Path
 from datetime import datetime

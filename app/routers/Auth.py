@@ -5,7 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app.schemas import (
+from app.schemas.schemas import (
     UserCreate, UserResponse, Token, ChangePasswordRequest,
     LogoutResponse, ForgotPasswordRequest, ResetPasswordRequest
 )

@@ -1,7 +1,7 @@
 # app/routers/users.py
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List
-from app.schemas import User, UserCreate, UserUpdate
+from app.schemas.schemas import User, UserCreate, UserUpdate
 from app.deps import get_current_user
 from fastapi import Security
 from app.deps import oauth2_scheme

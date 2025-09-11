@@ -2,7 +2,9 @@
 from datetime import date
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator
+import re
+
 
 # Base para modelos que reciben datos desde objetos/ORM
 class OrmBase(BaseModel):
@@ -11,9 +13,9 @@ class OrmBase(BaseModel):
 # ─────────────────────────────────────────────────────────
 # Users
 class UserCreate(BaseModel):
-    username: str
+    username: str = Field(..., min_length=3, max_length=20)
     email: EmailStr
-    password: str
+    password: str = Field(..., min_length=8, max_length=24)
 
 class UserUpdate(BaseModel):
     username: Optional[str] = None
@@ -26,7 +28,6 @@ class User(OrmBase):
     email: EmailStr
     posts: List[int] = Field(default_factory=list)
 
-# Respuesta pública (similar a User, pero explícita)
 class UserResponse(BaseModel):
     id: int
     username: str
@@ -63,7 +64,8 @@ class PostCreate(BaseModel):
     title: str
     body: str
     board_id: int
-    user_id: int
+    # El user_id lo inyecta el endpoint desde el token; dejarlo opcional evita 422
+    user_id: Optional[int] = None
     comments: List[CommentBase] = Field(default_factory=list)
 
 class PostUpdate(BaseModel):
@@ -104,10 +106,10 @@ class TokenPayload(BaseModel):
     exp: Optional[int] = None
 
 # ─────────────────────────────────────────────────────────
-# Password flows
+# Password reset 
 class ChangePasswordRequest(BaseModel):
-    old_password: str = Field(..., min_length=1)
-    new_password: str = Field(..., min_length=8)  # o 12 si subes política
+    old_password: str = Field(..., min_length=6)
+    new_password: str = Field(..., min_length=8)
 
 # Logout
 class LogoutResponse(BaseModel):
@@ -118,7 +120,7 @@ class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
 class ForgotPasswordResponse(BaseModel):
-    detail: str = "If the email exists, reset instructions were sent"
+    detail: str = "Si el correo existe, reset instrucciones enviadas"
 
 # Reset password
 class ResetPasswordRequest(BaseModel):

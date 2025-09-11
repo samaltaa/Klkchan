@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status
-from app.schemas import Post, PostCreate, PostUpdate
+from app.schemas.schemas import Post, PostCreate, PostUpdate
 from app.services import get_posts, get_post, create_post, update_post, delete_post
 
 posts_router = APIRouter(prefix="/posts", tags=["Posts"])

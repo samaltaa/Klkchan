@@ -152,6 +152,291 @@
             "password": "$2b$12$IWQv5G36zWPQZpeDl4A4AegdamZyZI4ddEdEBTKIq4F3us.MKPEsO",
             "posts": [],
             "id": 21
+        },
+        {
+            "username": "user_2bbcbb90",
+            "email": "user_2bbcbb90@example.com",
+            "password": "$2b$12$JOzNt2Ijo/HhCMpEWxJJhewaEGrjzTgYvkjm6LTWtuTktfr4dvP5e",
+            "posts": [],
+            "id": 22
+        },
+        {
+            "username": "user_b756fc95",
+            "email": "user_b756fc95@example.com",
+            "password": "$2b$12$/ABNSTmpsCBMGE0OK1FUU.xSj2VOF1VoFXS0j8qqxAfo35thNKbfa",
+            "posts": [],
+            "id": 23
+        },
+        {
+            "username": "user_34041c05",
+            "email": "user_34041c05@example.com",
+            "password": "$2b$12$.egSAwJeevK6pxp4VPYS6eL5icLaGeiznVY9YRagqu4lm5hONcLpG",
+            "posts": [
+                8
+            ],
+            "id": 24
+        },
+        {
+            "username": "user_ee1bdf48",
+            "email": "user_ee1bdf48@example.com",
+            "password": "$2b$12$5B6yxdaYUjORD7fl1Ul0kuiVVgBI8fh1s4CpWWb4dxu/GBFuUNhdm",
+            "posts": [],
+            "id": 25
+        },
+        {
+            "username": "user_07532e50",
+            "email": "user_07532e50@example.com",
+            "password": "$2b$12$OGBaBon8BM6oXHCzWBa7fewK0Y49T9Zv7H8uK5.BAqSMCquRcN.Ta",
+            "posts": [],
+            "id": 26
+        },
+        {
+            "username": "user_139240ca",
+            "email": "user_139240ca@example.com",
+            "password": "$2b$12$LLLnJFgIKWGMx06SZZtUB.mzW2uIOEiUB318HTP2xc7xYDGdn46SG",
+            "posts": [],
+            "id": 27
+        },
+        {
+            "username": "user_e317ef91",
+            "email": "user_e317ef91@example.com",
+            "password": "$2b$12$BbUfQrlr3p7Vi/d7.6Uf6eGBd1amlgLuydaqHRG1BeAsAwCbJ1QB2",
+            "posts": [],
+            "id": 28
+        },
+        {
+            "username": "user_2ff6f87c",
+            "email": "user_2ff6f87c@example.com",
+            "password": "$2b$12$7pkgMGlO6AMoGM3ntgqdlercrpIwzlA6mH1SJIXqf9bkMlN5T7AZ6",
+            "posts": [
+                9
+            ],
+            "id": 29
+        },
+        {
+            "username": "user_c46017a2",
+            "email": "user_c46017a2@example.com",
+            "password": "$2b$12$mzjsp40jbuVqS9fMcU3n2e3r4Q5XpRa655y85hmIyM3LFedQ3wqDu",
+            "posts": [],
+            "id": 30
+        },
+        {
+            "username": "user_aa0bbfd4",
+            "email": "user_aa0bbfd4@example.com",
+            "password": "$2b$12$etoBPxqJuu2.W80GU.nYROAezY8nGSJfWDIehOL7R9FFzy5lDtUWK",
+            "posts": [],
+            "id": 31
+        },
+        {
+            "username": "poster_3eb3bf",
+            "email": "poster_3eb3bf@example.com",
+            "password": "$2b$12$npygOAQhINju/1yhmfGt1.S1zS.RGfSsAWS5PSdRvP6CXwKyCeRLK",
+            "posts": [
+                10
+            ],
+            "id": 32
+        },
+        {
+            "username": "poster_45a6ab",
+            "email": "poster_45a6ab@example.com",
+            "password": "$2b$12$MXu3fTRxwesW1fElx3bU8.AlZSKjsgwyD2jnXvhoyJntzDEkejhYu",
+            "posts": [
+                11
+            ],
+            "id": 33
+        },
+        {
+            "username": "melvin_487432",
+            "email": "melvin_487432@example.com",
+            "password": "$2b$12$jWZuyteqXwvl8..nb//EI./1HwFuGpVvVybF.tr.ICjgZ.Lvr5PpO",
+            "posts": [],
+            "id": 34
+        },
+        {
+            "username": "user_d598c7cc",
+            "email": "user_d598c7cc@example.com",
+            "password": "$2b$12$8lYRItT6xVRbWJ0rQAYIqeW6/5ryRXjeWrLC7r5amJMyWBYuOQd5i",
+            "posts": [],
+            "id": 35
+        },
+        {
+            "username": "user_27831f04",
+            "email": "user_27831f04@example.com",
+            "password": "$2b$12$V6hpDtUdglmg8aYUe.kosOp8XVSk0ZsWWA8xMRwkc0H4KpxM9wVLq",
+            "posts": [],
+            "id": 36
+        },
+        {
+            "username": "user_ff6ca2a6",
+            "email": "user_ff6ca2a6@example.com",
+            "password": "$2b$12$1rvK/zFC7BUKSkW7jSeU7e7eg3q9kbs0hQrJ9P3Y0X8PkAAA10mtG",
+            "posts": [
+                12
+            ],
+            "id": 37
+        },
+        {
+            "username": "user_341795d7",
+            "email": "user_341795d7@example.com",
+            "password": "$2b$12$z0bNVIBIEqWWvhJi.qig0ejrfoh1cLV9rfHJugeTCgtb7eXNjgzky",
+            "posts": [],
+            "id": 38
+        },
+        {
+            "username": "user_7167ab59",
+            "email": "user_7167ab59@example.com",
+            "password": "$2b$12$3TSp4KrMEvb5DIEWFL6QEuIAJQSYszV7OmEininie.NsLD/lxsevS",
+            "posts": [],
+            "id": 39
+        },
+        {
+            "username": "poster_5851e0",
+            "email": "poster_5851e0@example.com",
+            "password": "$2b$12$8tPRI8RmeLkMoA1L5ICXQuR2gjM/sXOgnMurItoyQ/klCRD9Ftzwm",
+            "posts": [
+                13
+            ],
+            "id": 40
+        },
+        {
+            "username": "poster_9c4f91",
+            "email": "poster_9c4f91@example.com",
+            "password": "$2b$12$hhp7tN1hJzbcDR9Sr6gqF.jci2Ie8KSNvWUt8QwuQiytMmx9TE29G",
+            "posts": [
+                14
+            ],
+            "id": 41
+        },
+        {
+            "username": "melvin_1d8d78",
+            "email": "melvin_1d8d78@example.com",
+            "password": "$2b$12$zQwJRENtyeWFSs6BYUHBpeQf.x1MZoadUaO.gh7wI.znyi47PVt3G",
+            "posts": [],
+            "id": 42
+        },
+        {
+            "username": "user_838a57bd",
+            "email": "user_838a57bd@example.com",
+            "password": "$2b$12$PoENgqzbbkPB0uaFGXLD3.LzLqh5QAdscRvgT.Sacnu3TyuMc2Bk2",
+            "posts": [],
+            "id": 43
+        },
+        {
+            "username": "user_16fceae8",
+            "email": "user_16fceae8@example.com",
+            "password": "$2b$12$80WfjJz9QGFhLr/6/Zsm4.HRMSpdgKUKI2FFjPNtNee1IAq9ZyRdC",
+            "posts": [],
+            "id": 44
+        },
+        {
+            "username": "user_110d153d",
+            "email": "user_110d153d@example.com",
+            "password": "$2b$12$v/L3zrHecdUrByjoelWaoOKTGwm25QUjS/JKA.W0xUlqXy39AVt4K",
+            "posts": [
+                15
+            ],
+            "id": 45
+        },
+        {
+            "username": "user_aaea823c",
+            "email": "user_aaea823c@example.com",
+            "password": "$2b$12$J7im.uZnu5mzFJ4c2MqWsuvmfk/ZO7KYtt4c4IZT723C1JqEpISNe",
+            "posts": [],
+            "id": 46
+        },
+        {
+            "username": "user_c4e70ba9",
+            "email": "user_c4e70ba9@example.com",
+            "password": "$2b$12$ehiwuPthP.NxAI2sDroh5OuwAymjFn4Ckf0vQh0AnQwh0FYKQYMvi",
+            "posts": [],
+            "id": 47
+        },
+        {
+            "username": "poster_b59d27",
+            "email": "poster_b59d27@example.com",
+            "password": "$2b$12$Y0YIVVY8NLL2bDqbf9vaUuFZZMb9UoOsURvUWNIkIXCZ1XhoxWi8S",
+            "posts": [
+                16
+            ],
+            "id": 48
+        },
+        {
+            "username": "poster_35c135",
+            "email": "poster_35c135@example.com",
+            "password": "$2b$12$UQ2xSaB/ZPXV8fi.d1cJRu.z9kf1BWFIy7Hjah8mREHpHIjdz.qpq",
+            "posts": [
+                17
+            ],
+            "id": 49
+        },
+        {
+            "username": "melvin_a0dab5",
+            "email": "melvin_a0dab5@example.com",
+            "password": "$2b$12$AqS7Zi.cKu2Z525KE5kIk.KxnS.vfLaszQbfFMXVqYsZr/1TH3.gy",
+            "posts": [],
+            "id": 50
+        },
+        {
+            "username": "user_a60d77ea",
+            "email": "user_a60d77ea@example.com",
+            "password": "$2b$12$cgekga5.6TgO8NdfMRee9eHmxvsf3Yo42I3vrTb4.CEmp7PDXRJxK",
+            "posts": [],
+            "id": 51
+        },
+        {
+            "username": "user_fa44f30b",
+            "email": "user_fa44f30b@example.com",
+            "password": "$2b$12$oO1K6LZJTtQKxJ2PIgNTl.AWU4JBTT/J7igABEV7pRL5PKMoFVWri",
+            "posts": [],
+            "id": 52
+        },
+        {
+            "username": "user_15a1562a",
+            "email": "user_15a1562a@example.com",
+            "password": "$2b$12$gdUy4jgnoCnLHlg3bzIyzeFy4J0Z6WYUGLa466e1dZYXvpE3HlfE6",
+            "posts": [
+                18
+            ],
+            "id": 53
+        },
+        {
+            "username": "user_b5dd4e86",
+            "email": "user_b5dd4e86@example.com",
+            "password": "$2b$12$/f7LPxIweMNd7GdfLHPQUOav9AG.xUxyRjWrTQfkv8jv7hmHS6eWW",
+            "posts": [],
+            "id": 54
+        },
+        {
+            "username": "user_01675dd6",
+            "email": "user_01675dd6@example.com",
+            "password": "$2b$12$KL5eoUvQho.dRswMa3YIruML/cGXHpdTZTyuyEZqyULPm5wx6g.6y",
+            "posts": [],
+            "id": 55
+        },
+        {
+            "username": "poster_e28dee",
+            "email": "poster_e28dee@example.com",
+            "password": "$2b$12$3suMDcU9wm9haCY9hfHR2Oxq5LDkLN6JS9mZkDNgrs0xEU0W.nydi",
+            "posts": [
+                19
+            ],
+            "id": 56
+        },
+        {
+            "username": "poster_d3f3b2",
+            "email": "poster_d3f3b2@example.com",
+            "password": "$2b$12$YtzdIzA7dm8duQFq6yjVpOiGYmUyYPEPjYW71xnfgaqc/SZEbMTLy",
+            "posts": [
+                20
+            ],
+            "id": 57
+        },
+        {
+            "username": "melvin_d231b3",
+            "email": "melvin_d231b3@example.com",
+            "password": "$2b$12$6AmxbwYLXsS/rUt3C18up.pJLAXGHeuHLfQGg6FoU5foG.54UXtm6",
+            "posts": [],
+            "id": 58
         }
     ],
     "posts": [
@@ -223,6 +508,136 @@
             "created_at": "2025-08-22",
             "votes": 0,
             "user_id": 1,
+            "comments": []
+        },
+        {
+            "id": 8,
+            "title": "Título válido",
+            "body": "Contenido válido",
+            "board_id": 1,
+            "created_at": "2025-09-10",
+            "votes": 0,
+            "user_id": 24,
+            "comments": []
+        },
+        {
+            "id": 9,
+            "title": "Título válido",
+            "body": "Contenido válido",
+            "board_id": 1,
+            "created_at": "2025-09-10",
+            "votes": 0,
+            "user_id": 29,
+            "comments": []
+        },
+        {
+            "id": 10,
+            "title": "Título válido",
+            "body": "Contenido válido",
+            "board_id": 1,
+            "created_at": "2025-09-10",
+            "votes": 0,
+            "user_id": 32,
+            "comments": []
+        },
+        {
+            "id": 11,
+            "title": "Hi",
+            "body": "ok",
+            "board_id": 1,
+            "created_at": "2025-09-10",
+            "votes": 0,
+            "user_id": 33,
+            "comments": []
+        },
+        {
+            "id": 12,
+            "title": "Título válido",
+            "body": "Contenido válido",
+            "board_id": 1,
+            "created_at": "2025-09-10",
+            "votes": 0,
+            "user_id": 37,
+            "comments": []
+        },
+        {
+            "id": 13,
+            "title": "Título válido",
+            "body": "Contenido válido",
+            "board_id": 1,
+            "created_at": "2025-09-10",
+            "votes": 0,
+            "user_id": 40,
+            "comments": []
+        },
+        {
+            "id": 14,
+            "title": "Hi",
+            "body": "ok",
+            "board_id": 1,
+            "created_at": "2025-09-10",
+            "votes": 0,
+            "user_id": 41,
+            "comments": []
+        },
+        {
+            "id": 15,
+            "title": "Título válido",
+            "body": "Contenido válido",
+            "board_id": 1,
+            "created_at": "2025-09-10",
+            "votes": 0,
+            "user_id": 45,
+            "comments": []
+        },
+        {
+            "id": 16,
+            "title": "Título válido",
+            "body": "Contenido válido",
+            "board_id": 1,
+            "created_at": "2025-09-10",
+            "votes": 0,
+            "user_id": 48,
+            "comments": []
+        },
+        {
+            "id": 17,
+            "title": "Hi",
+            "body": "ok",
+            "board_id": 1,
+            "created_at": "2025-09-10",
+            "votes": 0,
+            "user_id": 49,
+            "comments": []
+        },
+        {
+            "id": 18,
+            "title": "Título válido",
+            "body": "Contenido válido",
+            "board_id": 1,
+            "created_at": "2025-09-10",
+            "votes": 0,
+            "user_id": 53,
+            "comments": []
+        },
+        {
+            "id": 19,
+            "title": "Título válido",
+            "body": "Contenido válido",
+            "board_id": 1,
+            "created_at": "2025-09-10",
+            "votes": 0,
+            "user_id": 56,
+            "comments": []
+        },
+        {
+            "id": 20,
+            "title": "Hi",
+            "body": "ok",
+            "board_id": 1,
+            "created_at": "2025-09-10",
+            "votes": 0,
+            "user_id": 57,
             "comments": []
         }
     ],
