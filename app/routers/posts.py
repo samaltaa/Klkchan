@@ -1,6 +1,10 @@
 from fastapi import APIRouter, HTTPException, status
 from app.schemas.schemas import Post, PostCreate, PostUpdate
 from app.services import get_posts, get_post, create_post, update_post, delete_post
+from app.utils.banned_words import has_banned_words
+
+if has_banned_words(payload.title, lang_hint="es") or has_banned_words(payload.content, lang_hint="es"):
+    raise HTTPException(status_code=400, detail="Contenido con palabras no permitidas.")
 
 posts_router = APIRouter(prefix="/posts", tags=["Posts"])
 
@@ -33,3 +37,5 @@ def delete_existing_post(post_id: int):
     if not success:
         raise HTTPException(404, "Post no encontrado")
     return {"message": "Post eliminado"}
+
+

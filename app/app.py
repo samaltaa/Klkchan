@@ -2,12 +2,16 @@
 from datetime import date
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException 
 
 from app.schemas import BoardCreate, PostCreate, CommentCreate, Post, Comment
 from app.deps import get_current_user
 from app.routers import users, auth, admin, moderation
+from app.routers import interactions, reports
 from app.services import load_data, save_data
+from pathlib import Path
+import logging
+from app.utils.banned_words import has_banned_words
 
 
 """
@@ -17,13 +21,14 @@ this will be the best practice since it keeps the folder
 structure consistent 
 """
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-   
-    _ = load_data()  # fuerza la creación de app/data/data.json si no existe
+    data_dir = Path(__file__).resolve().parents[0] / "data" / "ldnoobw"
+    for f in ("es.txt","en.txt"):
+        if not (data_dir / f).exists():
+            logging.warning("LDNOOBW: %s no encontrado en %s", f, data_dir)
+    _ = load_data()
     yield
-    
 
 app = FastAPI(
     title="KLKCHAN API",
@@ -40,11 +45,20 @@ app = FastAPI(
     ],
 )
 
+def enforce_clean_text(*texts: str):
+    for text in texts:
+        if text and has_banned_words(text, lang_hint="es"):
+            # usar HTTPException para responder 400 en FastAPI
+            raise HTTPException(status_code=400, detail="Texto con palabras no permitidas.")
+
+
 # Routers
 app.include_router(auth.router)       
 app.include_router(users.router)
 app.include_router(admin.router)
 app.include_router(moderation.router)
+app.include_router(interactions.router)
+app.include_router(reports.router)
 
 # ------------------- System -------------------
 @app.get("/health", tags=["System"])
@@ -66,6 +80,10 @@ Tata's endpoints below
 @app.post("/postboard", tags=["Boards"])
 async def post_board(payload: BoardCreate):
     data = load_data()
+
+    # Moderación (mínima, respeta comentarios de Samira)
+    enforce_clean_text(payload.name, payload.description)
+
     next_id = max([b["id"] for b in data["boards"]], default=0) + 1
     new_board = {
         "id": next_id,
@@ -75,6 +93,8 @@ async def post_board(payload: BoardCreate):
     data["boards"].append(new_board)
     save_data(data)
     return data
+
+
 
 @app.get("/getboards", tags=["Boards"])
 async def get_boards():
@@ -100,6 +120,10 @@ async def create_post(payload: PostCreate, current_user: dict = Depends(get_curr
     Mantiene la relación bidireccional user -> posts en data.json.
     """
     data = load_data()
+
+    # Moderación (mínima, respeta comentarios de Samira)
+    enforce_clean_text(payload.title, payload.body)
+
     next_id = max([p["id"] for p in data["posts"]], default=0) + 1
 
     new_post = {
@@ -133,6 +157,10 @@ async def create_comment(payload: CommentCreate, current_user: dict = Depends(ge
     Usa el post_id que llega en el payload (tu CommentCreate ya lo trae).
     """
     data = load_data()
+
+    # Moderación (mínima, respeta comentarios de Samira)
+    enforce_clean_text(payload.body)
+
     next_comment_id = max([c["id"] for c in data["comments"]], default=0) + 1
 
     new_comment = {

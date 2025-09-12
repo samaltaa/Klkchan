@@ -4,10 +4,12 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel, EmailStr, Field
 
 from app.schemas.schemas import (
     UserCreate, UserResponse, Token, ChangePasswordRequest,
-    LogoutResponse, ForgotPasswordRequest, ResetPasswordRequest
+    LogoutResponse, ForgotPasswordRequest, ResetPasswordRequest,
+    VerifyEmailRequest, ResendVerificationRequest
 )
 from app.utils.security import (
     hash_password,
@@ -148,7 +150,7 @@ def logout(current_user: dict = Depends(get_current_user)):
     return LogoutResponse()
 
 
-# ─────────── FORGOT PASSWORD (cascarón) ─────────
+# ─────────── FORGOT PASSWORD  ─────────
 @router.post("/forgot-password", status_code=204)
 def forgot_password(body: ForgotPasswordRequest):
     """
@@ -162,7 +164,7 @@ def forgot_password(body: ForgotPasswordRequest):
     return Response(status_code=204)
 
 
-# ─────────── RESET PASSWORD (cascarón) ──────────
+# ─────────── RESET PASSWORD──────────
 @router.post("/reset-password", status_code=200)
 def reset_password(body: ResetPasswordRequest):
     """
@@ -174,6 +176,20 @@ def reset_password(body: ResetPasswordRequest):
     # - Guardar nuevo hash.
     # - Invalidar sesiones previas si aplica.
     return {"detail": "Password updated"}
+
+
+# ─────────── Verificar peticion de correo ──────────
+
+class VerifyEmailRequest(BaseModel):
+    token: str = Field(min_length=16, max_length=4096)
+
+@router.post("/verify-email", status_code=status.HTTP_202_ACCEPTED)
+def verify_email(payload: VerifyEmailRequest):
+    return {"accepted": True, "detail": "Email verification stub", "next": "MODEL-32"}
+
+@router.post("/resend-verification", status_code=status.HTTP_202_ACCEPTED)
+def resend_verification(payload: ResendVerificationRequest):
+    return {"accepted": True, "detail": "Resend verification stub", "next": "MODEL-32"}
 
 
 @router.get("/_auth_probe")

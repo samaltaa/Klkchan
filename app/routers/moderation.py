@@ -2,15 +2,15 @@
 from enum import Enum
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from app.deps import require_role
 from app.utils.roles import Role
 from app.services import (
-    get_user_by_id,
+    get_user,      # usa get_user(id)
     delete_user,
-    get_post,
+    get_post,      # asumiendo que existen en services (como en tu versión original)
     delete_post,
     load_data,
     save_data,
@@ -27,12 +27,12 @@ class TargetType(str, Enum):
 
 
 class ActionType(str, Enum):
-    remove = "remove"        # Ocultar/Eliminar recurso
-    approve = "approve"      # No-op aquí; útil si implementas colas
-    lock = "lock"            # Placeholder para post/comentario
-    sticky = "sticky"        # Placeholder para post
-    ban_user = "ban_user"    # Ban lógico = delete_user en JSON store
-    shadowban = "shadowban"  # Placeholder
+    remove = "remove"
+    approve = "approve"
+    lock = "lock"
+    sticky = "sticky"
+    ban_user = "ban_user"
+    shadowban = "shadowban"
 
 
 class ModerationActionRequest(BaseModel):
@@ -62,7 +62,7 @@ def moderation_queue():
 )
 def moderation_actions(payload: ModerationActionRequest):
     """
-    Aplica acciones moderación mínimas sobre user/post/comment.
+    Aplica acciones de moderación mínimas sobre user/post/comment.
     - user + ban_user/remove → delete_user
     - post + remove          → delete_post
     - comment + remove       → elimina comentario del JSON (inline)
@@ -72,12 +72,13 @@ def moderation_actions(payload: ModerationActionRequest):
     # USER
     if payload.target_type == TargetType.user:
         if payload.action in {ActionType.ban_user, ActionType.remove}:
-            user = get_user_by_id(payload.target_id)
+            user = get_user(payload.target_id)
             if not user:
                 raise HTTPException(status_code=404, detail="Usuario no encontrado")
-            delete_user(payload.target_id)
+            ok = delete_user(payload.target_id)
+            if not ok:
+                raise HTTPException(status_code=500, detail="No se pudo eliminar el usuario")
             return ModerationActionResponse(applied=True, detail="Usuario eliminado/baneado")
-        # Otros (shadowban, approve...) → placeholder
         return ModerationActionResponse(applied=False, detail=f"Acción {payload.action} no implementada para user")
 
     # POST
@@ -86,7 +87,9 @@ def moderation_actions(payload: ModerationActionRequest):
             post = get_post(payload.target_id)
             if not post:
                 raise HTTPException(status_code=404, detail="Post no encontrado")
-            delete_post(payload.target_id)
+            ok = delete_post(payload.target_id)
+            if not ok:
+                raise HTTPException(status_code=500, detail="No se pudo eliminar el post")
             return ModerationActionResponse(applied=True, detail="Post eliminado")
         if payload.action in {ActionType.lock, ActionType.sticky, ActionType.approve, ActionType.shadowban}:
             return ModerationActionResponse(applied=False, detail=f"Acción {payload.action} no implementada para post")
@@ -107,5 +110,4 @@ def moderation_actions(payload: ModerationActionRequest):
             return ModerationActionResponse(applied=False, detail=f"Acción {payload.action} no implementada para comment")
         raise HTTPException(status_code=400, detail=f"Acción {payload.action} inválida para comment")
 
-    # Fallback imposible por Enum, pero por si acaso:
     raise HTTPException(status_code=400, detail="Target type no soportado")

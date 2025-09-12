@@ -1,0 +1,26 @@
+Creative Commons Attribution 4.0 International (CC BY 4.0)
+SPDX-License-Identifier: CC-BY-4.0
+
+Este proyecto utiliza listas provenientes de:
+“List of Dirty, Naughty, Obscene, and Otherwise Bad Words” (LDNOOBW).
+
+Fuente (upstream):
+https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words
+
+Licencia (código legal canónico):
+https://creativecommons.org/licenses/by/4.0/legalcode
+https://creativecommons.org/licenses/by/4.0/legalcode.txt
+
+Snapshot de referencia:
+- Proyecto LDNOOBW, commit: <PON-AQUÍ-EL-COMMIT> (YYYY-MM-DD)
+
+Cambios aplicados en KLKCHAN:
+- Normalización para comparación (minúsculas, acentos, leet → texto plano).
+- Colapso de repeticiones (“puuuta” → “puuta”) y tolerancia a espacios en frases.
+- Compilación regex con bordes de palabra para reducir falsos positivos.
+- Sistema de overrides (app/data/ldnoobw/overrides.json) para añadir/remover términos sin modificar el upstream.
+- Posible subconjunto de idiomas utilizado (p. ej., es/en).
+
+Nota:
+Este archivo referencia el texto legal oficial para evitar divergencias. 
+Si se requiere el texto completo offline, descargar el legalcode.txt canónico y almacenarlo en esta misma ruta.

@@ -3,8 +3,6 @@ from datetime import date
 from typing import List, Optional
 
 from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator
-import re
-
 
 # Base para modelos que reciben datos desde objetos/ORM
 class OrmBase(BaseModel):
@@ -106,26 +104,49 @@ class TokenPayload(BaseModel):
     exp: Optional[int] = None
 
 # ─────────────────────────────────────────────────────────
-# Password reset 
+# Password reset
 class ChangePasswordRequest(BaseModel):
     old_password: str = Field(..., min_length=6)
     new_password: str = Field(..., min_length=8)
 
-# Logout
 class LogoutResponse(BaseModel):
     detail: str = "Logged out"
 
-# Forgot password
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
 class ForgotPasswordResponse(BaseModel):
     detail: str = "Si el correo existe, reset instrucciones enviadas"
 
-# Reset password
 class ResetPasswordRequest(BaseModel):
     token: str = Field(..., description="Token de reseteo recibido por email")
     new_password: str = Field(..., min_length=12, max_length=128)
 
 class ResetPasswordResponse(BaseModel):
     detail: str = "Password updated"
+
+# ─────────────────────────────────────────────────────────
+# Email verification (MODEL-32)
+class VerifyEmailRequest(BaseModel):
+    """
+    Token de verificación enviado por email (ej. JWT).
+    """
+    token: str = Field(..., min_length=16, max_length=4096, description="Token de verificación (ej. JWT)")
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    @field_validator("token")
+    @classmethod
+    def no_spaces_and_basic_shape(cls, v: str) -> str:
+        if any(ch.isspace() for ch in v):
+            raise ValueError("El token no debe contener espacios.")
+        parts = v.split(".")
+        # Permitimos token simple o estilo JWT (3 segmentos)
+        if len(parts) not in (1, 3):
+            raise ValueError("Formato de token inválido.")
+        return v
+
+class ResendVerificationRequest(BaseModel):
+    """
+    Solicitud de reenvío de verificación.
+    """
+    email: EmailStr
