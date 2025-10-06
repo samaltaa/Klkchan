@@ -1,86 +1,153 @@
-# app/routers/users.py
-from fastapi import APIRouter, HTTPException, Depends
-from typing import List
-from app.schemas.schemas import User, UserCreate, UserUpdate
-from app.deps import get_current_user
-from fastapi import Security
-from app.deps import oauth2_scheme
+﻿from typing import Optional
 
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, Security, status
+
+from app.deps import get_current_user, oauth2_scheme
+from app.schemas import ErrorResponse, User, UserCreate, UserListResponse, UserResponse, UserUpdate
 from app.services import (
-    get_users,
-    get_user,
     create_user as service_create_user,
-    update_user as service_update_user,
     delete_user as service_delete_user,
     get_posts,
+    get_user,
+    get_users,
+    update_user as service_update_user,
 )
+from app.utils.banned_words import has_banned_words
 from app.utils.security import hash_password
-from app.utils.banned_words import has_banned_words  # ← añadido
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
-# Helper local (evita imports cruzados)
-def enforce_clean_text(*texts: str, lang: str = "es") -> None:
+
+def _enforce_clean_text(*texts: Optional[str]) -> None:
     for text in texts:
-        if text and has_banned_words(text, lang_hint=lang):
-            raise HTTPException(status_code=400, detail="Texto con palabras no permitidas.")
+        if text and has_banned_words(text, lang_hint="es"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Text contains banned words.",
+            )
 
 
-@router.get("/me", response_model=User)
-def read_me(token: str = Security(oauth2_scheme), current_user: dict = Depends(get_current_user)):
-    return current_user
+def _sanitize_user(user: dict) -> dict:
+    clean = {**user}
+    clean.pop("password", None)
+    return clean
 
-@router.get("/get-users", response_model=List[User])
-def get_users_list():
-    return get_users()
 
-@router.get("/get-user/", response_model=User)
-def get_user_by_id(user_id: int):
+def _attach_posts(user: dict) -> dict:
+    clean = _sanitize_user(user)
+    posts = get_posts()
+    clean["posts"] = [post["id"] for post in posts if post.get("user_id") == clean.get("id")]
+    return clean
+
+
+@router.get(
+    "",
+    response_model=UserListResponse,
+    responses={status.HTTP_400_BAD_REQUEST: {"model": ErrorResponse}},
+)
+def list_users(
+    limit: int = Query(50, ge=1, le=200),
+    cursor: Optional[int] = Query(default=None, description="Resume from user id greater than this value."),
+) -> UserListResponse:
+    users = sorted(get_users(), key=lambda u: u.get("id", 0))
+    if cursor is not None:
+        users = [user for user in users if user.get("id") > cursor]
+    sliced = users[:limit]
+    has_more = len(users) > limit
+    next_cursor = sliced[-1]["id"] if sliced and has_more else None
+    items = [_attach_posts(user) for user in sliced]
+    return UserListResponse(items=items, limit=limit, next_cursor=next_cursor)
+
+
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    responses={status.HTTP_401_UNAUTHORIZED: {"model": ErrorResponse}},
+)
+def read_me(
+    token: str = Security(oauth2_scheme),
+    current_user: dict = Depends(get_current_user),
+) -> UserResponse:
+    _ = token
+    return _attach_posts(current_user)
+
+
+@router.get(
+    "/{user_id}",
+    response_model=UserResponse,
+    responses={status.HTTP_404_NOT_FOUND: {"model": ErrorResponse}},
+)
+def retrieve_user(user_id: int) -> UserResponse:
     user = get_user(user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    all_posts = get_posts()
-    user["posts"] = [p["id"] for p in all_posts if p["user_id"] == user_id]
-    return user
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return _attach_posts(user)
 
-@router.post("/create-user", response_model=User)
-def create_new_user(user: UserCreate):
-    user_dict = user.dict()
 
-    # Moderación en campos de texto (si existen en tu esquema)
-    enforce_clean_text(
-        user_dict.get("username"),
-        user_dict.get("display_name"),
-        user_dict.get("bio"),
+@router.post(
+    "",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={status.HTTP_400_BAD_REQUEST: {"model": ErrorResponse}},
+)
+def create_new_user(payload: UserCreate) -> UserResponse:
+    _enforce_clean_text(payload.username, payload.display_name, payload.bio)
+    user_dict = payload.model_dump()
+    user_dict["password"] = hash_password(payload.password)
+    user_dict.setdefault("posts", [])
+    created = service_create_user(user_dict)
+    return _attach_posts(created)
+
+
+@router.put(
+    "/{user_id}",
+    response_model=UserResponse,
+    responses={
+        status.HTTP_400_BAD_REQUEST: {"model": ErrorResponse},
+        status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+    },
+)
+def update_existing_user(user_id: int, payload: UserUpdate) -> UserResponse:
+    updates = payload.model_dump(exclude_unset=True)
+    if not updates:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
+    _enforce_clean_text(
+        updates.get("username"),
+        updates.get("display_name"),
+        updates.get("bio"),
     )
-
-    user_dict["password"] = hash_password(user.password)
-    user_dict["posts"] = []
-    return service_create_user(user_dict)
-
-@router.put("/update-user/{user_id}", response_model=User)
-def update_user(user_id: int, updates: UserUpdate):
-    updates_dict = updates.dict(exclude_unset=True)
-
-    # Moderación solo en campos presentes en el payload
-    enforce_clean_text(
-        updates_dict.get("username"),
-        updates_dict.get("display_name"),
-        updates_dict.get("bio"),
-    )
-
-    if "password" in updates_dict and updates_dict["password"] is not None:
-        updates_dict["password"] = hash_password(updates_dict["password"])
-    updated = service_update_user(user_id, updates_dict)
+    if "password" in updates and updates["password"] is not None:
+        updates["password"] = hash_password(updates["password"])
+    updated = service_update_user(user_id, updates)
     if not updated:
-        raise HTTPException(status_code=404, detail="Usuario no existe")
-    all_posts = get_posts()
-    updated["posts"] = [p["id"] for p in all_posts if p["user_id"] == user_id]
-    return updated
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return _attach_posts(updated)
 
-@router.delete("/delete-user/")
-def delete_existing_user(user_id: int):
-    success = service_delete_user(user_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Usuario no existe")
-    return {"status": "success", "message": f"Usuario {user_id} eliminado"}
+
+@router.delete(
+    "/me",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={status.HTTP_401_UNAUTHORIZED: {"model": ErrorResponse}},
+)
+def delete_self(current_user: dict = Depends(get_current_user)) -> Response:
+    if not service_delete_user(current_user["id"]):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete(
+    "/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {"model": ErrorResponse},
+        status.HTTP_403_FORBIDDEN: {"model": ErrorResponse},
+        status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+    },
+)
+def delete_existing_user(user_id: int, current_user: dict = Depends(get_current_user)) -> Response:
+    roles = {str(role).lower() for role in current_user.get("roles", [])}
+    if current_user["id"] != user_id and "admin" not in roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+    if not service_delete_user(user_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -1,37 +1,88 @@
-# app/schemas/__init__.py
+﻿# app/schemas/__init__.py
 from .schemas import (
     OrmBase,
+    ErrorResponse,
+    CursorPage,
     # Users
-    UserCreate, UserUpdate, User, UserResponse,
+    UserCreate,
+    UserUpdate,
+    User,
+    UserResponse,
+    UserListResponse,
     # Boards
-    BoardCreate, Board,
-    # Comments
-    CommentBase, CommentCreate, Comment,
-    # Posts
-    PostCreate, PostUpdate, Post,
-    # Replies
-    ReplyCreate, Reply,
-    # Auth / Tokens & flows
-    Token, TokenPayload,
-    ChangePasswordRequest, LogoutResponse,
-    ForgotPasswordRequest, ForgotPasswordResponse,
-    ResetPasswordRequest, ResetPasswordResponse,
+    BoardCreate,
+    BoardUpdate,
+    Board,
+    BoardListResponse,
+    # Tags / attachments
+    Tag,
+    Attachment,
+    # Posts / comments
+    PostCreate,
+    PostUpdate,
+    Post,
+    PostListResponse,
+    CommentBase,
+    CommentCreate,
+    Comment,
+    CommentListResponse,
+    Reply,
+    # Social graph
+    Vote,
+    VoteSummary,
+    UserForumSubscription,
+    Report,
+    # Auth flows
+    TokenPair,
+    RefreshTokenRequest,
+    TokenPayload,
+    ChangePasswordRequest,
+    LogoutResponse,
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
+    VerifyEmailRequest,
+    ResendVerificationRequest,
 )
 
 __all__ = [
-    # Users
-    "OrmBase", "UserCreate", "UserUpdate", "User", "UserResponse",
-    # Boards
-    "BoardCreate", "Board",
-    # Comments
-    "CommentBase", "CommentCreate", "Comment",
-    # Posts
-    "PostCreate", "PostUpdate", "Post",
-    # Replies
-    "ReplyCreate", "Reply",
-    # Auth
-    "Token", "TokenPayload",
-    "ChangePasswordRequest", "LogoutResponse",
-    "ForgotPasswordRequest", "ForgotPasswordResponse",
-    "ResetPasswordRequest", "ResetPasswordResponse",
+    "OrmBase",
+    "ErrorResponse",
+    "CursorPage",
+    "UserCreate",
+    "UserUpdate",
+    "User",
+    "UserResponse",
+    "UserListResponse",
+    "BoardCreate",
+    "BoardUpdate",
+    "Board",
+    "BoardListResponse",
+    "Tag",
+    "Attachment",
+    "PostCreate",
+    "PostUpdate",
+    "Post",
+    "PostListResponse",
+    "CommentBase",
+    "CommentCreate",
+    "Comment",
+    "CommentListResponse",
+    "Reply",
+    "Vote",
+    "VoteSummary",
+    "UserForumSubscription",
+    "Report",
+    "TokenPair",
+    "RefreshTokenRequest",
+    "TokenPayload",
+    "ChangePasswordRequest",
+    "LogoutResponse",
+    "ForgotPasswordRequest",
+    "ForgotPasswordResponse",
+    "ResetPasswordRequest",
+    "ResetPasswordResponse",
+    "VerifyEmailRequest",
+    "ResendVerificationRequest",
 ]

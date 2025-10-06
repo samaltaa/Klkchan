@@ -109,6 +109,12 @@
             "id": 23,
             "name": "General",
             "description": "g"
+        },
+        {
+            "name": "3I/Atlas  es una nave extraterreste",
+            "description": "un cometa no  tiene  esas caracteristicas que han observado  sobre 3i/atlas , seremos  viistados por una civilizacion  mas avanzada!",
+            "id": 24,
+            "created_at": "2025-10-06T04:16:09.252932+00:00"
         }
     ],
     "users": [
