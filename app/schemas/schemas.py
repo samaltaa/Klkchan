@@ -32,7 +32,7 @@ class CursorPage(BaseModel):
 # Users
 # ---------------------------------------------------------------------------
 class UserBase(BaseModel):
-    username: str = Field(..., min_length=3, max_length=32)
+    username: str = Field(..., min_length=3, max_length=32, pattern=r"^\S+$")
     email: EmailStr
     display_name: Optional[str] = Field(default=None, max_length=80)
     bio: Optional[str] = Field(default=None, max_length=280)
@@ -40,6 +40,13 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8, max_length=128)
+
+    @field_validator("password")
+    @classmethod
+    def password_must_have_uppercase(cls, v: str) -> str:
+        if not any(c.isupper() for c in v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        return v
 
 
 class UserUpdate(BaseModel):

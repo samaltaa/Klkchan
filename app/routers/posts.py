@@ -14,6 +14,7 @@ from app.schemas import (
 from app.services import (
     create_post,
     delete_post,
+    get_board,
     get_comments_for_post,
     get_post,
     get_posts,
@@ -79,6 +80,8 @@ def create_new_post(
     payload: PostCreate,
     current_user: dict = Depends(get_current_user),
 ) -> Post:
+    if not get_board(payload.board_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Board not found")
     enforce_clean_text(payload.title, payload.body)
     post_data = payload.model_dump()
     post_data["user_id"] = current_user["id"]
