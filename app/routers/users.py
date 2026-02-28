@@ -9,22 +9,16 @@ from app.services import (
     delete_user as service_delete_user,
     get_posts,
     get_user,
+    get_user_by_email,
+    get_user_by_username,
     get_users,
     update_user as service_update_user,
 )
-from app.utils.banned_words import has_banned_words
+from app.utils.content import enforce_clean_text
 from app.utils.security import hash_password
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
-
-def _enforce_clean_text(*texts: Optional[str]) -> None:
-    for text in texts:
-        if text and has_banned_words(text, lang_hint="es"):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Text contains banned words.",
-            )
 
 
 def _sanitize_user(user: dict) -> dict:
@@ -91,7 +85,12 @@ def retrieve_user(user_id: int) -> UserResponse:
     responses={status.HTTP_400_BAD_REQUEST: {"model": ErrorResponse}},
 )
 def create_new_user(payload: UserCreate) -> UserResponse:
-    _enforce_clean_text(payload.username, payload.display_name, payload.bio)
+    from app.utils.helpers import normalize_email
+    enforce_clean_text(payload.username, payload.display_name, payload.bio)
+    if get_user_by_email(normalize_email(payload.email)):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists")
+    if get_user_by_username(payload.username):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already exists")
     user_dict = payload.model_dump()
     user_dict["password"] = hash_password(payload.password)
     user_dict.setdefault("posts", [])
@@ -111,7 +110,7 @@ def update_existing_user(user_id: int, payload: UserUpdate) -> UserResponse:
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
-    _enforce_clean_text(
+    enforce_clean_text(
         updates.get("username"),
         updates.get("display_name"),
         updates.get("bio"),

@@ -10,6 +10,15 @@ from fastapi.testclient import TestClient
 from app.app import app
 import app.services as services
 from app.utils.security import hash_password
+from app.utils.limiter import limiter
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _disable_rate_limits():
+    """Disable SlowAPI rate limiting for the entire test session."""
+    limiter.enabled = False
+    yield
+    limiter.enabled = True
 
 
 # 1) Limpia/crea tests/_tmp por ejecución de pytest

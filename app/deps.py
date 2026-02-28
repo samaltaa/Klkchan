@@ -5,6 +5,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError  # ✅ captura explícita de errores JWT
 
 from app.utils.security import decode_access_token
+from app.utils.token_blacklist import is_revoked
 from app.services import get_user_by_id
 from app.utils.roles import Role
 
@@ -34,6 +35,10 @@ def get_current_payload(token: str = Depends(oauth2_scheme)) -> Dict[str, Any]:
 
     if not isinstance(payload, dict) or "sub" not in payload:
         raise _unauthorized("Token inválido")
+
+    jti = payload.get("jti")
+    if jti and is_revoked(jti):
+        raise _unauthorized("Token revocado")
 
     return payload
 

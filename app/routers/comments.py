@@ -4,17 +4,21 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.deps import get_current_user
 from app.schemas import Comment, CommentCreate, CommentListResponse, ErrorResponse
-from app.services import create_comment, delete_comment, get_comments_for_post, get_post
-from app.utils.banned_words import has_banned_words
+from app.services import create_comment, delete_comment, get_comments, get_comments_for_post, get_post
+from app.utils.content import enforce_clean_text
 
 router = APIRouter(prefix="/comments", tags=["Comments"])
 
 
-def _enforce_clean_text(text: Optional[str]) -> None:
-    if text and has_banned_words(text, lang_hint="es"):
+def _check_comment_ownership(comment: dict, current_user: dict) -> None:
+    """Verifica que el usuario sea dueño del comentario o tenga rol mod/admin."""
+    roles = {str(r).lower() for r in current_user.get("roles", [])}
+    is_owner = comment.get("user_id") == current_user["id"]
+    is_privileged = bool(roles & {"mod", "admin"})
+    if not (is_owner or is_privileged):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Text contains banned words.",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to modify this comment",
         )
 
 
@@ -34,7 +38,7 @@ def create_new_comment(
 ) -> Comment:
     if not get_post(payload.post_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
-    _enforce_clean_text(payload.body)
+    enforce_clean_text(payload.body)
     comment_dict = payload.model_dump()
     comment_dict["user_id"] = current_user["id"]
     created = create_comment(comment_dict)
@@ -50,7 +54,10 @@ def create_new_comment(
     },
 )
 def delete_existing_comment(comment_id: int, current_user: dict = Depends(get_current_user)) -> Response:
-    _ = current_user  # Placeholder for ownership/role enforcement
+    comment = next((c for c in get_comments() if c.get("id") == comment_id), None)
+    if not comment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
+    _check_comment_ownership(comment, current_user)
     if not delete_comment(comment_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)

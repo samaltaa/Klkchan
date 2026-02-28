@@ -4,18 +4,9 @@ from fastapi import APIRouter, HTTPException, Query, Response, status
 
 from app.schemas import Board, BoardCreate, BoardListResponse, BoardUpdate, ErrorResponse
 from app.services import create_board, delete_board, get_board, list_boards, update_board
-from app.utils.banned_words import has_banned_words
+from app.utils.content import enforce_clean_text
 
 router = APIRouter(prefix="/boards", tags=["Boards"])
-
-
-def _enforce_clean_text(*texts: Optional[str]) -> None:
-    for text in texts:
-        if text and has_banned_words(text, lang_hint="es"):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Text contains banned words.",
-            )
 
 
 @router.get(
@@ -54,7 +45,7 @@ def retrieve_board(board_id: int) -> Board:
     responses={status.HTTP_400_BAD_REQUEST: {"model": ErrorResponse}},
 )
 def create_new_board(payload: BoardCreate) -> Board:
-    _enforce_clean_text(payload.name, payload.description)
+    enforce_clean_text(payload.name, payload.description)
     board_dict = payload.model_dump()
     created = create_board(board_dict)
     return created
@@ -72,7 +63,7 @@ def update_existing_board(board_id: int, payload: BoardUpdate) -> Board:
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
-    _enforce_clean_text(updates.get("name"), updates.get("description"))
+    enforce_clean_text(updates.get("name"), updates.get("description"))
     updated = update_board(board_id, updates)
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Board not found")

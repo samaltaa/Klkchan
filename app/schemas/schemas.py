@@ -1,4 +1,5 @@
 ﻿from datetime import datetime
+from enum import Enum
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
@@ -227,6 +228,32 @@ class Report(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Roles
+# ---------------------------------------------------------------------------
+class UserRole(str, Enum):
+    user = "user"
+    mod = "mod"
+    admin = "admin"
+
+
+class RoleAction(str, Enum):
+    add = "add"
+    remove = "remove"
+
+
+class RoleUpdate(BaseModel):
+    role: UserRole
+    action: RoleAction = RoleAction.add
+
+
+class RoleUpdateResponse(BaseModel):
+    user_id: int
+    username: str
+    roles: List[str]
+    message: str
+
+
+# ---------------------------------------------------------------------------
 # Auth / Tokens
 # ---------------------------------------------------------------------------
 class TokenPair(BaseModel):
@@ -296,6 +323,10 @@ class ResendVerificationRequest(BaseModel):
 __all__ = [
     "Attachment",
     "Board",
+    "RoleAction",
+    "RoleUpdate",
+    "RoleUpdateResponse",
+    "UserRole",
     "BoardCreate",
     "BoardListResponse",
     "BoardUpdate",

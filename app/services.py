@@ -170,6 +170,19 @@ def update_user(user_id: int, updates: Dict[str, Any]) -> Optional[Dict[str, Any
     return None
 
 
+def update_user_roles(user_id: int, roles: List[str]) -> Optional[Dict[str, Any]]:
+    """Replace the roles list for a user. Always keeps 'user' as base role."""
+    data = load_data()
+    safe_roles = list({r for r in roles if r in {"user", "mod", "admin"}} | {"user"})
+    for user in data["users"]:
+        if user.get("id") == user_id:
+            user["roles"] = safe_roles
+            user["updated_at"] = _now_utc_iso()
+            save_data(data)
+            return user
+    return None
+
+
 def update_user_password(user_id: int, new_hashed: str) -> bool:
     data = load_data()
     for user in data["users"]:
@@ -186,9 +199,20 @@ def delete_user(user_id: int) -> bool:
     initial = len(data["users"])
     data["users"] = [u for u in data["users"] if u.get("id") != user_id]
     if len(data["users"]) != initial:
-        # Detach authored posts and comments
+        # Collect IDs before removing
+        post_ids = {p.get("id") for p in data["posts"] if p.get("user_id") == user_id}
+        comment_ids = {c.get("id") for c in data["comments"] if c.get("user_id") == user_id}
         data["posts"] = [p for p in data["posts"] if p.get("user_id") != user_id]
         data["comments"] = [c for c in data["comments"] if c.get("user_id") != user_id]
+        # Cascade: remove votes by the user and votes on their content
+        data["votes"] = [
+            v for v in data.get("votes", [])
+            if not (
+                v.get("user_id") == user_id
+                or (v.get("target_type") == "post" and v.get("target_id") in post_ids)
+                or (v.get("target_type") == "comment" and v.get("target_id") in comment_ids)
+            )
+        ]
         save_data(data)
         return True
     return False
@@ -254,10 +278,18 @@ def delete_board(board_id: int) -> bool:
     data["boards"] = [b for b in data.get("boards", []) if b.get("id") != board_id]
     if len(data["boards"]) != before:
         # Cascade posts and comments for this board
-        board_posts = [p for p in data.get("posts", []) if p.get("board_id") == board_id]
-        board_post_ids = {p.get("id") for p in board_posts}
+        board_post_ids = {p.get("id") for p in data.get("posts", []) if p.get("board_id") == board_id}
+        comment_ids = {c.get("id") for c in data.get("comments", []) if c.get("post_id") in board_post_ids}
         data["posts"] = [p for p in data.get("posts", []) if p.get("board_id") != board_id]
         data["comments"] = [c for c in data.get("comments", []) if c.get("post_id") not in board_post_ids]
+        # Cascade: remove votes on board posts and their comments
+        data["votes"] = [
+            v for v in data.get("votes", [])
+            if not (
+                (v.get("target_type") == "post" and v.get("target_id") in board_post_ids)
+                or (v.get("target_type") == "comment" and v.get("target_id") in comment_ids)
+            )
+        ]
         save_data(data)
         return True
     return False
@@ -307,6 +339,11 @@ def delete_comment(comment_id: int) -> bool:
     before = len(data.get("comments", []))
     data["comments"] = [c for c in data.get("comments", []) if c.get("id") != comment_id]
     if len(data["comments"]) != before:
+        # Cascade: remove votes on this comment
+        data["votes"] = [
+            v for v in data.get("votes", [])
+            if not (v.get("target_type") == "comment" and v.get("target_id") == comment_id)
+        ]
         save_data(data)
         return True
     return False
@@ -407,8 +444,17 @@ def delete_post(post_id: int) -> bool:
     before = len(data.get("posts", []))
     data["posts"] = [p for p in data.get("posts", []) if p.get("id") != post_id]
     if len(data.get("posts", [])) != before:
-        # Remove comments linked to the post
+        # Collect comment IDs before removing them
+        comment_ids = {c.get("id") for c in data.get("comments", []) if c.get("post_id") == post_id}
         data["comments"] = [c for c in data.get("comments", []) if c.get("post_id") != post_id]
+        # Cascade: remove votes on the post and its comments
+        data["votes"] = [
+            v for v in data.get("votes", [])
+            if not (
+                (v.get("target_type") == "post" and v.get("target_id") == post_id)
+                or (v.get("target_type") == "comment" and v.get("target_id") in comment_ids)
+            )
+        ]
         for user in data.get("users", []):
             if post_id in user.get("posts", []):
                 user["posts"].remove(post_id)

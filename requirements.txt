@@ -22,6 +22,9 @@ coverage
 # Config
 python-dotenv
 
+# Rate limiting
+slowapi
+
 
 httpx==0.27.*
 

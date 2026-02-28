@@ -2,6 +2,11 @@
 from .schemas import (
     OrmBase,
     ErrorResponse,
+    # Roles
+    UserRole,
+    RoleAction,
+    RoleUpdate,
+    RoleUpdateResponse,
     CursorPage,
     # Users
     UserCreate,
@@ -49,6 +54,10 @@ from .schemas import (
 __all__ = [
     "OrmBase",
     "ErrorResponse",
+    "UserRole",
+    "RoleAction",
+    "RoleUpdate",
+    "RoleUpdateResponse",
     "CursorPage",
     "UserCreate",
     "UserUpdate",

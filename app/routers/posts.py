@@ -19,18 +19,21 @@ from app.services import (
     get_posts,
     update_post,
 )
-from app.utils.banned_words import has_banned_words
+from app.utils.content import enforce_clean_text
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
 
-def _enforce_clean_text(*texts: Optional[str]) -> None:
-    for text in texts:
-        if text and has_banned_words(text, lang_hint="es"):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Text contains banned words.",
-            )
+def _check_post_ownership(post: dict, current_user: dict) -> None:
+    """Verifica que el usuario sea dueño del post o tenga rol mod/admin."""
+    roles = {str(r).lower() for r in current_user.get("roles", [])}
+    is_owner = post.get("user_id") == current_user["id"]
+    is_privileged = bool(roles & {"mod", "admin"})
+    if not (is_owner or is_privileged):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to modify this post",
+        )
 
 
 @router.get(
@@ -76,7 +79,7 @@ def create_new_post(
     payload: PostCreate,
     current_user: dict = Depends(get_current_user),
 ) -> Post:
-    _enforce_clean_text(payload.title, payload.body)
+    enforce_clean_text(payload.title, payload.body)
     post_data = payload.model_dump()
     post_data["user_id"] = current_user["id"]
     created = create_post(post_data)
@@ -97,11 +100,14 @@ def update_existing_post(
     payload: PostUpdate,
     current_user: dict = Depends(get_current_user),
 ) -> Post:
-    _ = current_user  # Authorization placeholder (ownership checks pending)
+    post = get_post(post_id)
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+    _check_post_ownership(post, current_user)
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
-    _enforce_clean_text(updates.get("title"), updates.get("body"))
+    enforce_clean_text(updates.get("title"), updates.get("body"))
     updated = update_post(post_id, updates)
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
@@ -117,7 +123,10 @@ def update_existing_post(
     },
 )
 def delete_existing_post(post_id: int, current_user: dict = Depends(get_current_user)) -> Response:
-    _ = current_user  # Authorization placeholder (ownership checks pending)
+    post = get_post(post_id)
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+    _check_post_ownership(post, current_user)
     if not delete_post(post_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)

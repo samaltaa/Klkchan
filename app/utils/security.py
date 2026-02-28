@@ -14,7 +14,12 @@ from dotenv import load_dotenv
 # Cargar .env
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError(
+        "SECRET_KEY environment variable is required. "
+        "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+    )
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
@@ -68,6 +73,7 @@ def create_access_token(
 
     payload: Dict[str, Any] = {
         "iss": ISSUER,
+        "jti": str(uuid.uuid4()),
         "iat": now,
         "nbf": now,
         "exp": now + ttl,

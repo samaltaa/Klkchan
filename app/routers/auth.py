@@ -1,8 +1,11 @@
-﻿from datetime import timedelta, datetime
-from typing import Optional
+﻿import os
+from datetime import timedelta, datetime
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
+
+from app.utils.limiter import limiter
 
 from app.schemas import (
     ChangePasswordRequest,
@@ -19,6 +22,7 @@ from app.schemas import (
     VerifyEmailRequest,
 )
 from app.utils.security import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
     check_password_policy,
     create_access_token,
     create_refresh_token,
@@ -34,11 +38,27 @@ from app.services import (
     update_user_password,
 )
 from app.utils.helpers import normalize_email
-from app.deps import get_current_user
+from app.deps import get_current_payload, get_current_user
+from app.utils.token_blacklist import revoke as revoke_token
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+def _assign_initial_roles(email: str) -> List[str]:
+    """
+    Asigna roles iniciales basados en el email normalizado.
+    Lee ADMIN_EMAILS y MOD_EMAILS del entorno en tiempo de ejecución.
+    """
+    admin_emails = [e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "").split(",") if e.strip()]
+    mod_emails = [e.strip().lower() for e in os.getenv("MOD_EMAILS", "").split(",") if e.strip()]
+
+    roles: List[str] = ["user"]
+    normalized = email.strip().lower()
+    if normalized in admin_emails:
+        roles.append("admin")
+    elif normalized in mod_emails:
+        roles.append("mod")
+    return roles
 
 
 def find_user_by_username(username: str) -> Optional[dict]:
@@ -49,7 +69,8 @@ def find_user_by_username(username: str) -> Optional[dict]:
 
 
 @router.post("/register", response_model=UserResponse, status_code=201)
-def register(user: UserCreate) -> UserResponse:
+@limiter.limit("10/minute")
+def register(request: Request, user: UserCreate) -> UserResponse:
     email = normalize_email(user.email)
 
     if get_user_by_email(email):
@@ -62,6 +83,7 @@ def register(user: UserCreate) -> UserResponse:
     user_dict["email"] = email
     user_dict["password"] = hash_password(user.password)
     user_dict["posts"] = []
+    user_dict["roles"] = _assign_initial_roles(email)
 
     created = service_create_user(user_dict)
 
@@ -78,7 +100,8 @@ def register(user: UserCreate) -> UserResponse:
     response_model=TokenPair,
     responses={status.HTTP_401_UNAUTHORIZED: {"description": "Invalid credentials"}},
 )
-def login(form_data: OAuth2PasswordRequestForm = Depends()) -> TokenPair:
+@limiter.limit("10/minute")
+def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()) -> TokenPair:
     email = normalize_email(form_data.username)
     user = get_user_by_email(email)
 
@@ -106,7 +129,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()) -> TokenPair:
     response_model=TokenPair,
     responses={status.HTTP_401_UNAUTHORIZED: {"description": "Invalid refresh token"}},
 )
-def refresh_tokens(payload: RefreshTokenRequest) -> TokenPair:
+@limiter.limit("20/minute")
+def refresh_tokens(request: Request, payload: RefreshTokenRequest) -> TokenPair:
     try:
         refresh_payload = decode_refresh_token(payload.refresh_token)
     except Exception:  # pragma: no cover - jose raises JWTError
@@ -139,9 +163,12 @@ def refresh_tokens(payload: RefreshTokenRequest) -> TokenPair:
 
 
 @router.patch("/change-password", status_code=204)
+@limiter.limit("5/minute")
 def change_password(
+    request: Request,
     payload: ChangePasswordRequest,
     current_user: dict = Depends(get_current_user),
+    token_payload: dict = Depends(get_current_payload),
 ) -> Response:
     try:
         db_user = get_user_by_id(current_user["id"])
@@ -169,6 +196,12 @@ def change_password(
         if not update_user_password(db_user["id"], new_hash):
             raise HTTPException(status_code=500, detail="Password update failed")
 
+        # Revoke the current access token so the client must re-login
+        jti = token_payload.get("jti")
+        exp = token_payload.get("exp", 0)
+        if jti:
+            revoke_token(jti, float(exp))
+
         return Response(status_code=204)
     except HTTPException:
         raise
@@ -177,13 +210,21 @@ def change_password(
 
 
 @router.post("/logout", response_model=LogoutResponse)
-def logout(current_user: dict = Depends(get_current_user)) -> LogoutResponse:
+def logout(
+    token_payload: dict = Depends(get_current_payload),
+    current_user: dict = Depends(get_current_user),
+) -> LogoutResponse:
     _ = current_user
+    jti = token_payload.get("jti")
+    exp = token_payload.get("exp", 0)
+    if jti:
+        revoke_token(jti, float(exp))
     return LogoutResponse()
 
 
 @router.post("/forgot-password", response_model=ForgotPasswordResponse, status_code=202)
-def forgot_password(body: ForgotPasswordRequest) -> ForgotPasswordResponse:
+@limiter.limit("5/minute")
+def forgot_password(request: Request, body: ForgotPasswordRequest) -> ForgotPasswordResponse:
     _ = body
     return ForgotPasswordResponse()
 
