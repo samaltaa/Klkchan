@@ -3,14 +3,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, Security, status
 
 from app.deps import get_current_user, oauth2_scheme
-from app.schemas import ErrorResponse, User, UserCreate, UserListResponse, UserResponse, UserUpdate
+from app.schemas import ErrorResponse, UserListResponse, UserResponse, UserUpdate
 from app.services import (
-    create_user as service_create_user,
     delete_user as service_delete_user,
     get_posts,
     get_user,
-    get_user_by_email,
-    get_user_by_username,
     get_users,
     update_user as service_update_user,
 )
@@ -76,26 +73,6 @@ def retrieve_user(user_id: int) -> UserResponse:
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return _attach_posts(user)
-
-
-@router.post(
-    "",
-    response_model=UserResponse,
-    status_code=status.HTTP_201_CREATED,
-    responses={status.HTTP_400_BAD_REQUEST: {"model": ErrorResponse}},
-)
-def create_new_user(payload: UserCreate) -> UserResponse:
-    from app.utils.helpers import normalize_email
-    enforce_clean_text(payload.username, payload.display_name, payload.bio)
-    if get_user_by_email(normalize_email(payload.email)):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists")
-    if get_user_by_username(payload.username):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already exists")
-    user_dict = payload.model_dump()
-    user_dict["password"] = hash_password(payload.password)
-    user_dict.setdefault("posts", [])
-    created = service_create_user(user_dict)
-    return _attach_posts(created)
 
 
 @router.put(

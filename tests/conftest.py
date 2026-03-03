@@ -70,6 +70,7 @@ def _seed_minimal_fixture():
             "email": "admin@example.com",
             "password": hash_password("Aa123456!"),
             "posts": [],
+            "roles": ["user", "admin"],
         },
         {
             "id": 2,
@@ -77,6 +78,7 @@ def _seed_minimal_fixture():
             "email": "mod@example.com",
             "password": hash_password("Aa123456!"),
             "posts": [],
+            "roles": ["user", "mod"],
         },
         {
             "id": 3,
@@ -84,6 +86,7 @@ def _seed_minimal_fixture():
             "email": "alice@example.com",
             "password": hash_password("Aa123456!"),
             "posts": [],
+            "roles": ["user"],
         },
     ]
 

@@ -298,6 +298,7 @@ class ForgotPasswordRequest(BaseModel):
 
 class ForgotPasswordResponse(BaseModel):
     detail: str = "If the email exists, reset instructions were sent"
+    reset_token: Optional[str] = None  # TODO: eliminar en producción — enviar por email
 
 
 class ResetPasswordRequest(BaseModel):

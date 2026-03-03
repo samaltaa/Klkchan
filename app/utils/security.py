@@ -133,3 +133,35 @@ def decode_refresh_token(token: str) -> Dict[str, Any]:
     if payload.get("typ") != "refresh":
         raise JWTError("Invalid token type")
     return payload
+
+
+# ---------------- Password reset tokens ----------------
+def create_password_reset_token(user_id: int) -> Tuple[str, str, int]:
+    """
+    Crea un JWT de un solo uso para restablecer contraseña.
+    Retorna: (token, jti, exp_ts). Válido por 1 hora.
+    """
+    jti = str(uuid.uuid4())
+    now = _now_ts()
+    exp_ts = now + 3600  # 1 hour
+    payload = {
+        "iss": ISSUER,
+        "sub": str(user_id),
+        "typ": "password_reset",
+        "jti": jti,
+        "iat": now,
+        "nbf": now,
+        "exp": exp_ts,
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM), jti, exp_ts
+
+
+def decode_password_reset_token(token: str) -> Dict[str, Any]:
+    """
+    Decodifica y valida un token de reset.
+    Lanza JWTError si la firma es inválida, el token expiró, o typ != 'password_reset'.
+    """
+    payload = decode_access_token(token)
+    if payload.get("typ") != "password_reset":
+        raise JWTError("Invalid token type")
+    return payload

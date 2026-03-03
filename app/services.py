@@ -194,6 +194,21 @@ def update_user_password(user_id: int, new_hashed: str) -> bool:
     return False
 
 
+def update_user_iat_cutoff(user_id: int, cutoff_ts: int) -> bool:
+    """
+    Establece iat_cutoff para invalidar todos los access tokens emitidos
+    antes de este timestamp. Llamado tras un reset de contraseña.
+    """
+    data = load_data()
+    for user in data["users"]:
+        if user.get("id") == user_id:
+            user["iat_cutoff"] = cutoff_ts
+            user["updated_at"] = _now_utc_iso()
+            save_data(data)
+            return True
+    return False
+
+
 def delete_user(user_id: int) -> bool:
     data = load_data()
     initial = len(data["users"])

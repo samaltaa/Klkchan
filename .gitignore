@@ -4,5 +4,5 @@ __pycache__/
 htmlcov/
 tests/_tmp/
 tests/__pycache__/
-tests/test_*.py
+.env
 *.ENV

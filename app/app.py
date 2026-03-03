@@ -27,6 +27,7 @@ from app.routers import (
 from app.services import load_data
 
 APP_VERSION = "0.1.0"
+_ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
 
 @asynccontextmanager
@@ -43,6 +44,8 @@ app = FastAPI(
     title="KLKCHAN API",
     version=APP_VERSION,
     lifespan=lifespan,
+    docs_url=None if _ENVIRONMENT == "production" else "/docs",
+    redoc_url=None if _ENVIRONMENT == "production" else "/redoc",
     openapi_tags=[
         {"name": "Auth", "description": "Authentication and password flows."},
         {"name": "Users", "description": "User profiles and account management."},
@@ -66,7 +69,6 @@ app.add_middleware(SlowAPIMiddleware)
 # ---------------------------------------------------------------------------
 # CORS
 # ---------------------------------------------------------------------------
-_ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 if _ENVIRONMENT == "development":
     _CORS_ORIGINS = [
         "http://localhost:3000",

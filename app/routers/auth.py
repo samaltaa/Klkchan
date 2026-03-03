@@ -1,5 +1,5 @@
 ﻿import os
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -25,7 +25,9 @@ from app.utils.security import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     check_password_policy,
     create_access_token,
+    create_password_reset_token,
     create_refresh_token,
+    decode_password_reset_token,
     decode_refresh_token,
     hash_password,
     verify_password,
@@ -35,11 +37,12 @@ from app.services import (
     get_user_by_email,
     get_user_by_id,
     get_users,
+    update_user_iat_cutoff,
     update_user_password,
 )
 from app.utils.helpers import normalize_email
 from app.deps import get_current_payload, get_current_user
-from app.utils.token_blacklist import revoke as revoke_token
+from app.utils.token_blacklist import is_revoked, revoke as revoke_token
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -225,13 +228,53 @@ def logout(
 @router.post("/forgot-password", response_model=ForgotPasswordResponse, status_code=202)
 @limiter.limit("5/minute")
 def forgot_password(request: Request, body: ForgotPasswordRequest) -> ForgotPasswordResponse:
-    _ = body
-    return ForgotPasswordResponse()
+    email = normalize_email(body.email)
+    user = get_user_by_email(email)
+
+    reset_token = None
+    if user:
+        token, _jti, _exp_ts = create_password_reset_token(user["id"])
+        reset_token = token  # TODO: enviar por email en producción, no retornar aquí
+
+    # Siempre retorna 202 — no revelar si el email está registrado
+    return ForgotPasswordResponse(reset_token=reset_token)
 
 
 @router.post("/reset-password", response_model=ResetPasswordResponse)
 def reset_password(body: ResetPasswordRequest) -> ResetPasswordResponse:
-    _ = body
+    try:
+        payload = decode_password_reset_token(body.token)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Token inválido o expirado")
+
+    jti = payload.get("jti")
+    if jti and is_revoked(jti):
+        raise HTTPException(status_code=400, detail="Token ya utilizado")
+
+    try:
+        user_id = int(payload["sub"])
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Token inválido")
+
+    user = get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    ok, msg = check_password_policy(body.new_password)
+    if not ok:
+        raise HTTPException(status_code=422, detail=msg)
+
+    new_hash = hash_password(body.new_password)
+    update_user_password(user_id, new_hash)
+
+    # Invalidar todas las sesiones activas del usuario
+    cutoff_ts = int(datetime.now(timezone.utc).timestamp())
+    update_user_iat_cutoff(user_id, cutoff_ts)
+
+    # Consumir el token (uso único)
+    if jti:
+        revoke_token(jti, float(payload.get("exp", 0)))
+
     return ResetPasswordResponse()
 
 
@@ -246,7 +289,3 @@ def resend_verification(payload: ResendVerificationRequest):
     _ = payload
     return {"accepted": True, "detail": "Resend verification stub", "next": "MODEL-32"}
 
-
-@router.get("/_auth_probe")
-def _auth_probe():
-    return {"ok": True, "ts": datetime.utcnow().isoformat() + "Z"}

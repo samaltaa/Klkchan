@@ -59,6 +59,11 @@ async def get_current_user(
     if not user:
         raise _unauthorized("Usuario no encontrado")
 
+    # Invalidar tokens emitidos antes de un reset de contraseña
+    iat_cutoff = user.get("iat_cutoff")
+    if iat_cutoff and payload.get("iat", 0) <= iat_cutoff:
+        raise _unauthorized("Sesión invalidada. Inicia sesión nuevamente.")
+
     # roles y scopes vienen del JWT; default ya lo pone create_access_token
     return {
         "id": user["id"],

@@ -8,12 +8,13 @@ from pydantic import BaseModel, Field
 from app.deps import require_role
 from app.utils.roles import Role
 from app.services import (
-    get_user,      # usa get_user(id)
+    get_user,
     delete_user,
-    get_post,      # asumiendo que existen en services (como en tu versión original)
+    get_post,
     delete_post,
     load_data,
     save_data,
+    moderation_queue_list,
 )
 
 router = APIRouter(prefix="/moderation", tags=["Moderation"])
@@ -47,11 +48,11 @@ class ModerationActionResponse(BaseModel):
     detail: Optional[str] = None
 
 
-# ───────────────────── Queue (placeholder) ─────────────────────
+# ─────────────────────────── Queue ─────────────────────────────
 @router.get("/queue", dependencies=[Depends(require_role(Role.mod, Role.admin))])
 def moderation_queue():
-    # TODO: Integrar reports/flags reales
-    return {"items": []}
+    items = moderation_queue_list(status="pending")
+    return {"items": items}
 
 
 # ──────────────────────── Actions (core) ───────────────────────
