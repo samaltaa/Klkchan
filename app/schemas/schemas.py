@@ -137,21 +137,20 @@ class UserUpdate(BaseModel):
     Todos los campos son opcionales — solo se actualizan los que se envían.
     El endpoint rechaza el request si no se envía ningún campo (400).
 
+    Para cambiar la contraseña usar PATCH /auth/change-password,
+    que verifica la contraseña anterior antes de aceptar la nueva.
+
     Attributes:
         username: Nuevo username, 3-32 chars. None = sin cambio.
         email: Nuevo email. None = sin cambio.
         display_name: Nuevo nombre público. None = sin cambio.
         bio: Nueva bio. None = sin cambio.
-        password: Nueva contraseña, 8-128 chars. None = sin cambio.
-                  Nota: para cambiar contraseña con verificación de la
-                  contraseña antigua, usar PUT /auth/change-password.
     """
 
     username: Optional[str] = Field(default=None, min_length=3, max_length=32)
     email: Optional[EmailStr] = None
     display_name: Optional[str] = Field(default=None, max_length=80)
     bio: Optional[str] = Field(default=None, max_length=280)
-    password: Optional[str] = Field(default=None, min_length=8, max_length=128)
 
 
 class User(OrmBase, UserBase):

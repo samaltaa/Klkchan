@@ -28,7 +28,6 @@ from app.services import (
     update_user as service_update_user,
 )
 from app.utils.content import enforce_clean_text
-from app.utils.security import hash_password
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -189,10 +188,11 @@ def update_existing_user(
     Actualiza el perfil de un usuario existente.
 
     Solo el propio usuario o un administrador pueden modificar el perfil.
-    Campos actualizables: username, email, display_name, bio, password.
-    Si se provee password, se hashea antes de guardar. Los campos de
-    contenido (username, display_name, bio) pasan por enforce_clean_text
-    para filtrar lenguaje prohibido.
+    Campos actualizables: username, email, display_name, bio.
+    El campo password NO es modificable por este endpoint — usar
+    PATCH /auth/change-password que verifica la contraseña anterior.
+    Los campos de contenido (username, display_name, bio) pasan por
+    enforce_clean_text para filtrar lenguaje prohibido.
 
     Args:
         user_id: ID del usuario a actualizar.
@@ -224,8 +224,6 @@ def update_existing_user(
         updates.get("display_name"),
         updates.get("bio"),
     )
-    if "password" in updates and updates["password"] is not None:
-        updates["password"] = hash_password(updates["password"])
     updated = service_update_user(user_id, updates)
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
