@@ -1,4 +1,21 @@
-﻿from typing import Optional
+﻿"""
+comments.py — Endpoints de gestión de comentarios de KLKCHAN.
+
+Los comentarios soportan anidación mediante el campo parent_id.
+La respuesta siempre es un árbol con replies anidados hasta
+un máximo de 6 niveles de profundidad.
+
+Reglas de anidación:
+  - parent_id=null → comentario raíz (depth=0).
+  - parent_id=<id> → reply al comentario con ese ID.
+  - El padre debe pertenecer al mismo post: 400 si pertenece a otro.
+  - El padre debe existir: 404 si no existe.
+
+Cascade delete: eliminar un comentario raíz NO elimina sus replies.
+Los replies quedan huérfanos y son promovidos a nivel raíz por
+build_comment_tree() en las respuestas de lectura.
+"""
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
@@ -11,7 +28,20 @@ router = APIRouter(prefix="/comments", tags=["Comments"])
 
 
 def _check_comment_ownership(comment: dict, current_user: dict) -> None:
-    """Verifica que el usuario sea dueño del comentario o tenga rol mod/admin."""
+    """
+    Verifica que el usuario sea dueño del comentario o tenga rol mod/admin.
+
+    Los moderadores y administradores pueden eliminar cualquier comentario.
+    El propietario puede eliminar solo su propio comentario. Cualquier otro
+    usuario autenticado recibe 403.
+
+    Args:
+        comment: Dict del comentario con campo user_id.
+        current_user: Dict del usuario autenticado con campos id y roles.
+
+    Raises:
+        HTTPException 403: Si el usuario no es owner ni mod/admin.
+    """
     roles = {str(r).lower() for r in current_user.get("roles", [])}
     is_owner = comment.get("user_id") == current_user["id"]
     is_privileged = bool(roles & {"mod", "admin"})
@@ -36,6 +66,31 @@ def create_new_comment(
     payload: CommentCreate,
     current_user: dict = Depends(get_current_user),
 ) -> Comment:
+    """
+    Crea un comentario en un post, opcionalmente como reply de otro comentario.
+
+    Si se omite parent_id se crea un comentario raíz (depth=0).
+    Si se provee parent_id se crea un reply anidado bajo ese comentario.
+
+    La respuesta del create devuelve depth=0 y replies=[] siempre,
+    independientemente de la posición en el árbol — el depth real se
+    calcula al consultar el árbol via GET /posts/{id}/comments.
+
+    Args:
+        payload: Datos del comentario: body, post_id y parent_id opcional.
+        current_user: Usuario autenticado (inyectado por get_current_user).
+
+    Returns:
+        Comment creado con id, body, post_id, user_id, created_at,
+        votes=0, depth=0 y replies=[].
+
+    Raises:
+        HTTPException 400: Si body contiene palabras prohibidas.
+        HTTPException 400: Si parent_id pertenece a un post diferente.
+        HTTPException 401: Si no se provee un token válido.
+        HTTPException 404: Si el post (post_id) no existe.
+        HTTPException 404: Si parent_id no existe.
+    """
     if not get_post(payload.post_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
     enforce_clean_text(payload.body)
@@ -62,6 +117,26 @@ def create_new_comment(
     },
 )
 def delete_existing_comment(comment_id: int, current_user: dict = Depends(get_current_user)) -> Response:
+    """
+    Elimina un comentario por ID. Solo el autor o un mod/admin pueden eliminarlo.
+
+    Nota sobre replies huérfanos: los comentarios hijo (replies) NO se
+    eliminan en cascada. Quedan en la base de datos con un parent_id que
+    ya no existe y son promovidos a nivel raíz automáticamente por
+    build_comment_tree() en las respuestas de lectura.
+
+    Args:
+        comment_id: ID del comentario a eliminar.
+        current_user: Usuario autenticado (inyectado por get_current_user).
+
+    Returns:
+        Respuesta vacía 204 No Content.
+
+    Raises:
+        HTTPException 401: Si no se provee un token válido.
+        HTTPException 403: Si el usuario no es owner ni mod/admin.
+        HTTPException 404: Si el comentario no existe.
+    """
     comment = next((c for c in get_comments() if c.get("id") == comment_id), None)
     if not comment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
@@ -80,6 +155,33 @@ def list_comments(
     limit: int = Query(50, ge=1, le=200),
     cursor: Optional[int] = Query(default=None, description="Resume from root comment id greater than this value."),
 ) -> CommentListResponse:
+    """
+    Lista los comentarios de un post como árbol anidado con paginación.
+
+    Equivalente a GET /posts/{post_id}/comments pero con post_id como
+    query parameter. Retorna el mismo árbol. Puede ser conveniente cuando
+    el frontend ya tiene el post_id en estado y no quiere construir la URL
+    con path parameter.
+
+    La paginación actúa sobre comentarios raíz: el cursor filtra
+    raíces con id > cursor. Los replies se incluyen completos para
+    cada raíz retornada.
+
+    Endpoint público (no requiere autenticación).
+
+    Args:
+        post_id: ID del post cuyos comentarios se quieren listar (requerido).
+        limit: Número máximo de comentarios raíz a retornar (1-200, default 50).
+        cursor: ID del último comentario raíz visto para continuar la paginación.
+
+    Returns:
+        CommentListResponse con items (árbol de comentarios raíz con replies
+        anidados), limit y next_cursor.
+
+    Raises:
+        HTTPException 404: Si el post no existe.
+        HTTPException 422: Si post_id se omite o es menor a 1.
+    """
     if not get_post(post_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
     all_comments = get_comments_for_post(post_id)
