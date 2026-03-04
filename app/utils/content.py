@@ -1,6 +1,15 @@
 """
-Utilidades compartidas para validación de contenido.
-Centraliza la lógica de banned words para evitar duplicación en routers.
+content.py — Validación y limpieza de contenido — KLKCHAN.
+
+Centraliza la lógica de sanitización de texto para posts, comments,
+boards y usuarios. Filtra palabras prohibidas usando los diccionarios
+LDNOOBW (List of Dirty, Naughty, Obscene, and Otherwise Bad Words)
+en español e inglés con normalización de leet-speak.
+
+Uso típico en un endpoint:
+    from app.utils.content import enforce_clean_text
+
+    enforce_clean_text(payload.title, payload.body)  # lanza 400 si hay banned words
 """
 from typing import Optional
 

@@ -1,45 +1,102 @@
+"""
+helpers.py — Utilidades generales — KLKCHAN.
+
+Funciones de propósito general usadas en múltiples capas:
+normalización de texto y email, generación de slugs,
+sanitización HTML y paginación offset-based.
+
+Nota: paginate_list() implementa paginación page/limit (offset-based).
+Los endpoints usan paginación cursor-based; paginate_list() queda
+como utilidad interna sin uso en producción actualmente.
+"""
 import re
 import unicodedata
 import uuid
 from typing import Any
 
-# 🔹 Normaliza un string (ej: username)
+
 def normalize_text(text: str) -> str:
     """
-    Convierte el texto a minúsculas, sin tildes ni caracteres raros.
-    Ejemplo: "José Pérez" -> "jose perez"
+    Convierte el texto a minúsculas, elimina tildes y caracteres especiales.
+
+    Aplica NFD decomposition para separar los diacríticos y luego
+    los descarta al codificar a ASCII. Colapsa espacios múltiples.
+
+    Args:
+        text: Texto a normalizar.
+
+    Returns:
+        Texto en minúsculas, sin tildes, sin caracteres non-ASCII,
+        con espacios simples.
+
+    Ejemplo:
+        "José Pérez" -> "jose perez"
     """
     text = text.lower().strip()
     text = unicodedata.normalize("NFD", text).encode("ascii", "ignore").decode("utf-8")
-    return re.sub(r"\s+", " ", text)  # quita espacios múltiples
+    return re.sub(r"\s+", " ", text)
 
 
-# 🔹 Genera un slug único para posts/títulos
 def generate_slug(title: str) -> str:
     """
-    Crea un slug URL-friendly a partir de un título.
-    Ejemplo: "Hola Mundo!!!" -> "hola-mundo-abc123"
+    Crea un slug URL-friendly único a partir de un título.
+
+    Normaliza el título (minúsculas, sin tildes), reemplaza caracteres
+    no alfanuméricos por guiones y añade un sufijo de 6 hex chars para
+    garantizar unicidad incluso con títulos idénticos.
+
+    Args:
+        title: Título original del post o board.
+
+    Returns:
+        Slug en formato "palabras-del-titulo-xxxxxx".
+
+    Ejemplo:
+        "Hola Mundo!!!" -> "hola-mundo-abc123"
     """
     title = normalize_text(title)
     slug = re.sub(r"[^a-z0-9]+", "-", title).strip("-")
-    unique_id = uuid.uuid4().hex[:6]  # sufijo único corto
+    unique_id = uuid.uuid4().hex[:6]
     return f"{slug}-{unique_id}"
 
 
-# 🔹 Limpieza básica de HTML (contra XSS)
 def sanitize_html(text: str) -> str:
     """
-    Elimina etiquetas HTML peligrosas.
+    Elimina etiquetas HTML del texto para prevenir XSS.
+
+    Usa una regex que captura cualquier tag HTML (incluyendo
+    self-closing y tags con atributos) y los descarta.
+
+    Args:
+        text: Texto potencialmente con HTML.
+
+    Returns:
+        Texto sin ninguna etiqueta HTML, con whitespace recortado.
+
+    TODO: Aplicar en POST /posts y POST /comments antes de persistir
+          el body de los posts y comentarios (pendiente Sprint 3 /
+          migración a Supabase). Actualmente no se invoca desde
+          ningún endpoint.
     """
     clean = re.sub(r"<.*?>", "", text)
     return clean.strip()
 
 
-# 🔹 Paginación simple para listas
 def paginate_list(items: list[Any], page: int = 1, limit: int = 10) -> dict:
     """
-    Aplica paginación a una lista en memoria.
-    Retorna un dict con items paginados y metadata.
+    Aplica paginación offset-based a una lista en memoria.
+
+    Nota: Los endpoints de la API usan paginación cursor-based
+    (limit + next_cursor). Esta función es una utilidad interna
+    no usada actualmente en ningún endpoint de producción.
+
+    Args:
+        items: Lista completa de elementos a paginar.
+        page: Número de página (1-indexed, default 1).
+        limit: Elementos por página (default 10).
+
+    Returns:
+        Dict con page, limit, total_items, total_pages y data (slice).
     """
     start = (page - 1) * limit
     end = start + limit
@@ -53,10 +110,20 @@ def paginate_list(items: list[Any], page: int = 1, limit: int = 10) -> dict:
     }
 
 
-# 🔹 Normaliza emails a lowercase (evita duplicados por mayúsculas o espacios)
 def normalize_email(email: str) -> str:
     """
-    Convierte un email a minúsculas y quita espacios.
-    Ejemplo: "  MelVin@KLKCHAN.Dev  " -> "melvin@klkchan.dev"
+    Convierte un email a minúsculas y elimina espacios externos.
+
+    Siempre llamar antes de comparar o almacenar emails para
+    evitar duplicados por variaciones de mayúsculas o espacios.
+
+    Args:
+        email: Email crudo (posiblemente con mayúsculas o espacios).
+
+    Returns:
+        Email normalizado en minúsculas sin espacios externos.
+
+    Ejemplo:
+        "  MelVin@KLKCHAN.Dev  " -> "melvin@klkchan.dev"
     """
     return email.strip().lower()
