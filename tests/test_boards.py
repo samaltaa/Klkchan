@@ -15,9 +15,20 @@ def client():
 _BOARD_PAYLOAD = {"name": "TestBoard", "description": "A test board"}
 
 
+def _login(client: TestClient, email: str, password: str = "Aa123456!") -> str:
+    r = client.post("/auth/login", data={"username": email, "password": password})
+    assert r.status_code == 200, f"login failed: {r.text}"
+    return r.json()["access_token"]
+
+
+def _auth(token: str) -> dict:
+    return {"Authorization": f"Bearer {token}"}
+
+
 class TestBoardCreate:
     def test_create_board(self, client, temp_data_path):
-        r = client.post("/boards", json=_BOARD_PAYLOAD)
+        token = _login(client, "alice@example.com")
+        r = client.post("/boards", json=_BOARD_PAYLOAD, headers=_auth(token))
         assert r.status_code == 201
         body = r.json()
         assert body["name"] == "TestBoard"
@@ -25,11 +36,13 @@ class TestBoardCreate:
         assert "id" in body
 
     def test_create_board_with_banned_word_fails(self, client, temp_data_path):
-        r = client.post("/boards", json={"name": "bastardo board", "description": "test"})
+        token = _login(client, "alice@example.com")
+        r = client.post("/boards", json={"name": "bastardo board", "description": "test"}, headers=_auth(token))
         assert r.status_code == 400
 
     def test_create_board_missing_name_fails(self, client, temp_data_path):
-        r = client.post("/boards", json={"description": "no name"})
+        token = _login(client, "alice@example.com")
+        r = client.post("/boards", json={"description": "no name"}, headers=_auth(token))
         assert r.status_code == 422
 
 
@@ -75,14 +88,17 @@ class TestBoardGet:
 
 class TestBoardUpdate:
     def test_update_board_name(self, client, temp_data_path):
-        r = client.put("/boards/1", json={"name": "Updated General"})
+        token = _login(client, "admin@example.com")
+        r = client.put("/boards/1", json={"name": "Updated General"}, headers=_auth(token))
         assert r.status_code == 200
         assert r.json()["name"] == "Updated General"
 
     def test_update_board_with_banned_word_fails(self, client, temp_data_path):
-        r = client.put("/boards/1", json={"description": "bastardo content"})
+        token = _login(client, "admin@example.com")
+        r = client.put("/boards/1", json={"description": "bastardo content"}, headers=_auth(token))
         assert r.status_code == 400
 
     def test_update_nonexistent_board_returns_404(self, client, temp_data_path):
-        r = client.put("/boards/9999", json={"name": "Ghost"})
+        token = _login(client, "alice@example.com")
+        r = client.put("/boards/9999", json={"name": "Ghost"}, headers=_auth(token))
         assert r.status_code == 404

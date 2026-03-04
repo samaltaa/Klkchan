@@ -948,6 +948,7 @@ def create_post(post: Dict[str, Any]) -> Dict[str, Any]:
 
     for user in data.get("users", []):
         if user.get("id") == post_copy["user_id"]:
+            
             user.setdefault("posts", [])
             if post_copy["id"] not in user["posts"]:
                 user["posts"].append(post_copy["id"])

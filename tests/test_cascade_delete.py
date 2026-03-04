@@ -141,8 +141,8 @@ class TestCascadeDeleteBoard:
         _add_vote(client, admin_token, "post", 1)
         assert len(_get_votes("post", 1)) == 1
 
-        # Delete board 1 (no auth required by boards router)
-        r = client.delete("/boards/1")
+        # Delete board 1 — admin required
+        r = client.delete("/boards/1", headers={"Authorization": f"Bearer {admin_token}"})
         assert r.status_code == 204
 
         assert len(_get_votes("post", 1)) == 0, "votes on board posts should be removed with board"

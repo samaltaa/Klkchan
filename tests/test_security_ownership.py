@@ -26,8 +26,14 @@ def _auth(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
-def _create_board(client: TestClient, name: str = "test-board") -> int:
-    r = client.post("/boards", json={"name": name, "description": "board for tests"})
+def _login(client: TestClient, email: str, password: str = "Aa123456!") -> str:
+    r = client.post("/auth/login", data={"username": email, "password": password})
+    assert r.status_code == 200, f"login failed: {r.text}"
+    return r.json()["access_token"]
+
+
+def _create_board(client: TestClient, token: str, name: str = "test-board") -> int:
+    r = client.post("/boards", json={"name": name, "description": "board for tests"}, headers=_auth(token))
     assert r.status_code == 201, f"create board failed: {r.text}"
     return r.json()["id"]
 
@@ -61,7 +67,7 @@ def test_user_cannot_edit_others_post(client: TestClient):
     alice_token = _register_and_login(client, "alice_ow1", "alice_ow1@test.com")
     bob_token = _register_and_login(client, "bob_ow1", "bob_ow1@test.com")
 
-    board_id = _create_board(client, "board-ow1")
+    board_id = _create_board(client, alice_token, "board-ow1")
     post_id = _create_post(client, alice_token, board_id)
 
     r = client.put(f"/posts/{post_id}", json={"title": "Hacked by Bob"}, headers=_auth(bob_token))
@@ -73,7 +79,7 @@ def test_owner_can_edit_own_post(client: TestClient):
     """Alice puede editar su propio post → 200."""
     alice_token = _register_and_login(client, "alice_ow2", "alice_ow2@test.com")
 
-    board_id = _create_board(client, "board-ow2")
+    board_id = _create_board(client, alice_token, "board-ow2")
     post_id = _create_post(client, alice_token, board_id, title="Original")
 
     r = client.put(f"/posts/{post_id}", json={"title": "Updated by Alice"}, headers=_auth(alice_token))
@@ -90,7 +96,7 @@ def test_user_cannot_delete_others_post(client: TestClient):
     alice_token = _register_and_login(client, "alice_ow3", "alice_ow3@test.com")
     bob_token = _register_and_login(client, "bob_ow3", "bob_ow3@test.com")
 
-    board_id = _create_board(client, "board-ow3")
+    board_id = _create_board(client, alice_token, "board-ow3")
     post_id = _create_post(client, alice_token, board_id)
 
     r = client.delete(f"/posts/{post_id}", headers=_auth(bob_token))
@@ -102,7 +108,7 @@ def test_owner_can_delete_own_post(client: TestClient):
     """Alice puede borrar su propio post → 204."""
     alice_token = _register_and_login(client, "alice_ow4", "alice_ow4@test.com")
 
-    board_id = _create_board(client, "board-ow4")
+    board_id = _create_board(client, alice_token, "board-ow4")
     post_id = _create_post(client, alice_token, board_id)
 
     r = client.delete(f"/posts/{post_id}", headers=_auth(alice_token))
@@ -122,7 +128,7 @@ def test_user_cannot_delete_others_comment(client: TestClient):
     alice_token = _register_and_login(client, "alice_ow5", "alice_ow5@test.com")
     bob_token = _register_and_login(client, "bob_ow5", "bob_ow5@test.com")
 
-    board_id = _create_board(client, "board-ow5")
+    board_id = _create_board(client, alice_token, "board-ow5")
     post_id = _create_post(client, alice_token, board_id)
     comment_id = _create_comment(client, alice_token, post_id)
 
@@ -135,7 +141,7 @@ def test_owner_can_delete_own_comment(client: TestClient):
     """Alice puede borrar su propio comentario → 204."""
     alice_token = _register_and_login(client, "alice_ow6", "alice_ow6@test.com")
 
-    board_id = _create_board(client, "board-ow6")
+    board_id = _create_board(client, alice_token, "board-ow6")
     post_id = _create_post(client, alice_token, board_id)
     comment_id = _create_comment(client, alice_token, post_id)
 
@@ -150,7 +156,7 @@ def test_owner_can_delete_own_comment(client: TestClient):
 def test_unauthenticated_cannot_edit_post(client: TestClient):
     """Sin token no se puede editar un post → 401."""
     alice_token = _register_and_login(client, "alice_ow7", "alice_ow7@test.com")
-    board_id = _create_board(client, "board-ow7")
+    board_id = _create_board(client, alice_token, "board-ow7")
     post_id = _create_post(client, alice_token, board_id)
 
     r = client.put(f"/posts/{post_id}", json={"title": "No token"})
@@ -160,7 +166,7 @@ def test_unauthenticated_cannot_edit_post(client: TestClient):
 def test_unauthenticated_cannot_delete_comment(client: TestClient):
     """Sin token no se puede borrar un comentario → 401."""
     alice_token = _register_and_login(client, "alice_ow8", "alice_ow8@test.com")
-    board_id = _create_board(client, "board-ow8")
+    board_id = _create_board(client, alice_token, "board-ow8")
     post_id = _create_post(client, alice_token, board_id)
     comment_id = _create_comment(client, alice_token, post_id)
 
