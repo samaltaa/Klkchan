@@ -1,3 +1,17 @@
+"""
+admin.py — Endpoints de administración de KLKCHAN.
+
+Panel de control exclusivo para administradores. Permite gestionar
+usuarios, asignar roles y consultar estadísticas globales del sistema.
+
+Diferencia entre roles:
+  - mod:   puede moderar contenido (queue, actions, reports).
+  - admin: puede moderar contenido + gestionar usuarios y roles
+           + ver stats globales + eliminar cualquier usuario.
+
+Todos los endpoints de este router requieren rol admin. El check
+se aplica a nivel de router mediante dependencies=[Depends(require_role(Role.admin))].
+"""
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
@@ -15,6 +29,18 @@ router = APIRouter(
 
 
 def _sanitize(user: dict) -> dict:
+    """
+    Elimina campos sensibles del dict de usuario antes de retornarlo.
+
+    Remueve la clave 'password' (hash bcrypt) para que no aparezca
+    en las respuestas de la API de administración.
+
+    Args:
+        user: Dict del usuario tal como viene de get_users().
+
+    Returns:
+        Copia del dict sin la clave 'password'.
+    """
     clean = {**user}
     clean.pop("password", None)
     return clean
@@ -29,7 +55,24 @@ def list_users_admin(
     limit: int = Query(50, ge=1, le=200),
     cursor: Optional[int] = Query(default=None, description="Resume from user id greater than this value."),
 ) -> UserListResponse:
-    """Lista todos los usuarios. Solo admin."""
+    """
+    Lista todos los usuarios del sistema con paginación cursor-based.
+
+    Retorna usuarios ordenados por ID ascendente. El campo password se omite
+    de todos los registros. A diferencia de GET /users (público), este endpoint
+    muestra datos completos incluyendo roles. Solo accesible para administradores.
+
+    Args:
+        limit: Número máximo de usuarios a retornar (1-200, default 50).
+        cursor: ID del último usuario visto. Si se omite, retorna desde el inicio.
+
+    Returns:
+        UserListResponse con items (lista de User sin password), limit y next_cursor.
+
+    Raises:
+        HTTPException 401: Si no se provee un token válido.
+        HTTPException 403: Si el usuario no tiene rol admin.
+    """
     users = sorted(get_users(), key=lambda u: u.get("id", 0))
     if cursor is not None:
         users = [u for u in users if u.get("id", 0) > cursor]
@@ -54,7 +97,33 @@ def update_user_role(
     payload: RoleUpdate,
     current_user: dict = Depends(get_current_user),
 ) -> RoleUpdateResponse:
-    """Añade o elimina un rol de un usuario. Solo admin."""
+    """
+    Añade o elimina un rol de un usuario. Solo admin.
+
+    El rol base 'user' no puede ser removido. El admin no puede quitarse
+    a sí mismo el rol 'admin'. El rol 'user' se garantiza siempre presente
+    en el conjunto final de roles, independientemente de la acción.
+
+    Roles asignables: user, mod, admin.
+    Acciones disponibles: add, remove (ver RoleAction en schemas).
+
+    Args:
+        user_id: ID del usuario a modificar.
+        payload: Datos con role (UserRole) y action (add|remove).
+        current_user: Admin autenticado (inyectado por get_current_user).
+
+    Returns:
+        RoleUpdateResponse con user_id, username, roles (lista actualizada)
+        y message confirmando la acción realizada.
+
+    Raises:
+        HTTPException 400: Si se intenta remover el rol base 'user'.
+        HTTPException 400: Si el admin intenta quitarse a sí mismo el rol admin.
+        HTTPException 401: Si no se provee un token válido.
+        HTTPException 403: Si el usuario no tiene rol admin.
+        HTTPException 404: Si el usuario objetivo no existe.
+        HTTPException 500: Si la actualización falla inesperadamente.
+    """
     user = get_user(user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -101,7 +170,21 @@ def update_user_role(
     responses={status.HTTP_403_FORBIDDEN: {"model": ErrorResponse}},
 )
 def admin_stats() -> dict:
-    """Estadísticas del sistema. Solo admin."""
+    """
+    Retorna estadísticas globales del sistema. Solo admin.
+
+    Lee directamente de la capa de datos sin filtros ni cache.
+    Las métricas se calculan al vuelo en cada petición.
+
+    Returns:
+        Dict con dos secciones:
+        - users:   total, admins, moderators, regular (solo rol 'user').
+        - content: boards, posts, comments, votes.
+
+    Raises:
+        HTTPException 401: Si no se provee un token válido.
+        HTTPException 403: Si el usuario no tiene rol admin.
+    """
     data = load_data()
     users = data.get("users", [])
     return {
@@ -133,7 +216,31 @@ def delete_user_admin(
     user_id: int,
     current_user: dict = Depends(get_current_user),
 ) -> Response:
-    """Elimina un usuario (solo admin). El admin no puede eliminarse a sí mismo."""
+    """
+    Elimina un usuario por su ID. Solo admin.
+
+    El cascade delete elimina todos los posts, comentarios y votos del usuario
+    eliminado (igual que DELETE /users/me). El admin no puede eliminarse a sí
+    mismo via este endpoint; debe usar DELETE /users/me para eso.
+
+    Args:
+        user_id: ID del usuario a eliminar.
+        current_user: Admin autenticado (inyectado por get_current_user).
+
+    Returns:
+        Respuesta vacía 204 No Content.
+
+    Raises:
+        HTTPException 400: Si el admin intenta eliminarse a sí mismo.
+        HTTPException 401: Si no se provee un token válido.
+        HTTPException 403: Si el usuario no tiene rol admin.
+        HTTPException 404: Si el usuario no existe.
+
+    Notas:
+        A diferencia de DELETE /users/me, este endpoint no revoca el token
+        del usuario eliminado. Si el usuario tenía sesiones activas, sus tokens
+        seguirán siendo válidos hasta su expiración natural.
+    """
     if user_id == current_user["id"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
