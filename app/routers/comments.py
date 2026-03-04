@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.deps import get_current_user
 from app.schemas import Comment, CommentCreate, CommentListResponse, ErrorResponse
-from app.services import create_comment, delete_comment, get_comments, get_comments_for_post, get_post
+from app.services import build_comment_tree, create_comment, delete_comment, get_comments, get_comments_for_post, get_post
 from app.utils.content import enforce_clean_text
 
 router = APIRouter(prefix="/comments", tags=["Comments"])
@@ -41,7 +41,15 @@ def create_new_comment(
     enforce_clean_text(payload.body)
     comment_dict = payload.model_dump()
     comment_dict["user_id"] = current_user["id"]
-    created = create_comment(comment_dict)
+    try:
+        created = create_comment(comment_dict)
+    except ValueError as exc:
+        err = str(exc)
+        if err == "parent_not_found":
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Parent comment not found")
+        if err == "parent_wrong_post":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Parent comment belongs to a different post")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err)
     return created
 
 
@@ -70,14 +78,15 @@ def delete_existing_comment(comment_id: int, current_user: dict = Depends(get_cu
 def list_comments(
     post_id: int = Query(..., ge=1, description="Filter comments by post id."),
     limit: int = Query(50, ge=1, le=200),
-    cursor: Optional[int] = Query(default=None, description="Resume from comment id greater than this value."),
+    cursor: Optional[int] = Query(default=None, description="Resume from root comment id greater than this value."),
 ) -> CommentListResponse:
     if not get_post(post_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
-    comments = get_comments_for_post(post_id)
+    all_comments = get_comments_for_post(post_id)
+    tree = build_comment_tree(all_comments)
     if cursor is not None:
-        comments = [comment for comment in comments if comment.get("id") > cursor]
-    sliced = comments[:limit]
-    has_more = len(comments) > limit
+        tree = [c for c in tree if c.get("id") > cursor]
+    sliced = tree[:limit]
+    has_more = len(tree) > limit
     next_cursor = sliced[-1]["id"] if sliced and has_more else None
     return CommentListResponse(items=sliced, limit=limit, next_cursor=next_cursor)

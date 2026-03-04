@@ -50,7 +50,7 @@ def test_pagination_empty_results(client: TestClient, temp_data_path):
 
 
 def test_pagination_consistent_ordering(client: TestClient, temp_data_path):
-    """Posts están ordenados por ID ascendente."""
+    """Posts están ordenados por ID descendente (sort=new, más recientes primero)."""
     token = _register_and_login(client, "orderpager", "orderpager@test.com")
     created_ids = []
     for i in range(3):
@@ -65,7 +65,7 @@ def test_pagination_consistent_ordering(client: TestClient, temp_data_path):
     response = client.get("/posts")
     all_ids = [p["id"] for p in response.json()["items"]]
     filtered = [pid for pid in all_ids if pid in created_ids]
-    assert filtered == sorted(filtered)
+    assert filtered == sorted(filtered, reverse=True)
 
 
 def test_boards_pagination(client: TestClient, temp_data_path):

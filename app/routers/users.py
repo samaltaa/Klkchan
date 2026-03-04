@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, Security
 from app.deps import get_current_user, oauth2_scheme
 from app.schemas import ErrorResponse, UserListResponse, UserResponse, UserUpdate
 from app.services import (
+    calculate_user_karma,
     delete_user as service_delete_user,
     get_posts,
     get_user,
@@ -28,6 +29,7 @@ def _attach_posts(user: dict) -> dict:
     clean = _sanitize_user(user)
     posts = get_posts()
     clean["posts"] = [post["id"] for post in posts if post.get("user_id") == clean.get("id")]
+    clean.update(calculate_user_karma(clean["id"]))
     return clean
 
 

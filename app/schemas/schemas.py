@@ -64,6 +64,9 @@ class User(OrmBase, UserBase):
     posts: List[int] = Field(default_factory=list)
     roles: List[str] = Field(default_factory=lambda: ["user"])
     is_active: bool = True
+    karma: int = 0
+    post_karma: int = 0
+    comment_karma: int = 0
 
 
 class UserResponse(User):
@@ -140,6 +143,11 @@ class Comment(OrmBase, CommentBase):
     updated_at: Optional[datetime] = None
     votes: int = 0
     parent_id: Optional[int] = None
+    depth: int = 0
+    replies: List["Comment"] = Field(default_factory=list)
+
+
+Comment.model_rebuild()
 
 
 class CommentListResponse(CursorPage):

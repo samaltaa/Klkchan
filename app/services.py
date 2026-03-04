@@ -233,6 +233,33 @@ def delete_user(user_id: int) -> bool:
     return False
 
 
+def calculate_user_karma(user_id: int) -> Dict[str, int]:
+    """Return post_karma, comment_karma, and total karma for a user."""
+    data = load_data()
+    votes = data.get("votes", [])
+    user_post_ids = {
+        p["id"] for p in data.get("posts", []) if p.get("user_id") == user_id
+    }
+    user_comment_ids = {
+        c["id"] for c in data.get("comments", []) if c.get("user_id") == user_id
+    }
+    post_karma = sum(
+        v.get("value", 0)
+        for v in votes
+        if v.get("target_type") == "post" and v.get("target_id") in user_post_ids
+    )
+    comment_karma = sum(
+        v.get("value", 0)
+        for v in votes
+        if v.get("target_type") == "comment" and v.get("target_id") in user_comment_ids
+    )
+    return {
+        "post_karma": post_karma,
+        "comment_karma": comment_karma,
+        "karma": post_karma + comment_karma,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Board services
 # ---------------------------------------------------------------------------
@@ -322,6 +349,34 @@ def _build_comment(raw: Dict[str, Any]) -> Dict[str, Any]:
     return comment
 
 
+def build_comment_tree(
+    comments: List[Dict[str, Any]], max_depth: int = 6
+) -> List[Dict[str, Any]]:
+    """
+    Convert a flat list of comments (sorted by id asc) into a nested tree.
+    Each node gains 'depth' (0 = root) and 'replies' (list of child nodes).
+    Comments beyond max_depth are promoted to root level.
+    """
+    nodes: Dict[int, Dict[str, Any]] = {}
+    roots: List[Dict[str, Any]] = []
+
+    for c in sorted(comments, key=lambda x: x.get("id", 0)):
+        node = {**c, "replies": [], "depth": 0}
+        nodes[c["id"]] = node
+        parent_id = c.get("parent_id")
+        if parent_id and parent_id in nodes:
+            parent_node = nodes[parent_id]
+            node["depth"] = parent_node["depth"] + 1
+            if node["depth"] <= max_depth:
+                parent_node["replies"].append(node)
+            else:
+                roots.append(node)
+        else:
+            roots.append(node)
+
+    return roots
+
+
 def get_comments() -> List[Dict[str, Any]]:
     data = load_data()
     comments = [_build_comment(c) for c in data.get("comments", [])]
@@ -340,6 +395,18 @@ def create_comment(comment: Dict[str, Any]) -> Dict[str, Any]:
         raise ValueError("post_id is required")
 
     data = load_data()
+
+    parent_id = comment.get("parent_id")
+    if parent_id is not None:
+        parent = next(
+            (c for c in data.get("comments", []) if c.get("id") == parent_id),
+            None,
+        )
+        if parent is None:
+            raise ValueError("parent_not_found")
+        if parent.get("post_id") != comment.get("post_id"):
+            raise ValueError("parent_wrong_post")
+
     comment_copy = deepcopy(comment)
     comment_copy["id"] = _next_id(data.get("comments", []))
     comment_copy.setdefault("votes", 0)
@@ -376,6 +443,31 @@ def _group_comments_by_post(comments: List[Dict[str, Any]]) -> Dict[int, List[Di
     return grouped
 
 
+def _hot_score(post: Dict[str, Any]) -> float:
+    """Reddit-inspired hot score: votes / (hours_since_creation + 2)^1.5"""
+    votes = post.get("votes", 0)
+    raw = post.get("created_at", "")
+    try:
+        created_dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        if created_dt.tzinfo is None:
+            created_dt = created_dt.replace(tzinfo=timezone.utc)
+    except (ValueError, TypeError):
+        created_dt = datetime.now(timezone.utc)
+    hours = max((datetime.now(timezone.utc) - created_dt).total_seconds() / 3600, 0)
+    return votes / ((hours + 2) ** 1.5)
+
+
+def get_posts_sorted(sort: str = "new") -> List[Dict[str, Any]]:
+    """Return posts ordered by the given sort criterion."""
+    posts = get_posts()
+    if sort == "top":
+        return sorted(posts, key=lambda p: p.get("votes", 0), reverse=True)
+    if sort == "hot":
+        return sorted(posts, key=_hot_score, reverse=True)
+    # "new": newest first by created_at
+    return sorted(posts, key=lambda p: p.get("created_at", ""), reverse=True)
+
+
 def get_posts() -> List[Dict[str, Any]]:
     data = load_data()
     comments = [_build_comment(c) for c in data.get("comments", [])]
@@ -393,7 +485,7 @@ def get_posts() -> List[Dict[str, Any]]:
         post.setdefault("attachments", [])
         post_comments = comments_by_post.get(post.get("id"), [])
         post["comment_count"] = len(post_comments)
-        post["comments"] = post_comments
+        post["comments"] = build_comment_tree(post_comments)
         posts.append(post)
 
     posts.sort(key=lambda p: p.get("id", 0))
