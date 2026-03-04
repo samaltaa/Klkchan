@@ -678,6 +678,21 @@ def get_comments() -> List[Dict[str, Any]]:
     return comments
 
 
+def get_comment(comment_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Retorna un comentario por su ID, o None si no existe.
+
+    Args:
+        comment_id: ID del comentario a buscar.
+
+    Returns:
+        Dict del comentario normalizado, o None si no existe.
+    """
+    data = load_data()
+    raw = next((c for c in data.get("comments", []) if c.get("id") == comment_id), None)
+    return _build_comment(raw) if raw else None
+
+
 def get_comments_for_post(post_id: int) -> List[Dict[str, Any]]:
     """
     Retorna todos los comentarios de un post específico, como lista plana.

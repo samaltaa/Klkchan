@@ -29,8 +29,8 @@ from app.services import (
     delete_user,
     get_post,
     delete_post,
-    load_data,
-    save_data,
+    get_comment,
+    delete_comment,
     moderation_queue_list,
 )
 
@@ -140,7 +140,7 @@ def moderation_actions(payload: ModerationActionRequest):
       - user + otras           → applied=False (no implementado)
       - post + remove          → elimina el post (cascade: comentarios, votos)
       - post + lock/sticky/approve/shadowban → applied=False
-      - comment + remove       → elimina el comentario (sin cascade a votos del comentario)
+      - comment + remove       → elimina el comentario (cascade: votos del comentario)
       - comment + lock/approve/shadowban     → applied=False
       - comment + ban_user     → 400 (acción inválida para este target_type)
 
@@ -158,9 +158,8 @@ def moderation_actions(payload: ModerationActionRequest):
         HTTPException 500: Si la eliminación falla inesperadamente.
 
     Notas:
-        La eliminación de comentarios es inline (no usa delete_comment() de
-        services.py) y NO elimina los votos del comentario. Esto es una
-        inconsistencia respecto al cascade delete de DELETE /comments/{id}.
+        Los replies huérfanos tras eliminar un comentario raíz son promovidos
+        a nivel raíz por build_comment_tree() en las respuestas de lectura.
     """
 
     # USER
@@ -189,16 +188,15 @@ def moderation_actions(payload: ModerationActionRequest):
             return ModerationActionResponse(applied=False, detail=f"Acción {payload.action} no implementada para post")
         raise HTTPException(status_code=400, detail=f"Acción {payload.action} inválida para post")
 
-    # COMMENT (inline porque aún no hay service helpers)
+    # COMMENT
     if payload.target_type == TargetType.comment:
         if payload.action == ActionType.remove:
-            data = load_data()
-            before = len(data.get("comments", []))
-            data["comments"] = [c for c in data.get("comments", []) if c.get("id") != payload.target_id]
-            after = len(data["comments"])
-            if before == after:
+            comment = get_comment(payload.target_id)
+            if not comment:
                 raise HTTPException(status_code=404, detail="Comentario no encontrado")
-            save_data(data)
+            ok = delete_comment(payload.target_id)
+            if not ok:
+                raise HTTPException(status_code=500, detail="No se pudo eliminar el comentario")
             return ModerationActionResponse(applied=True, detail="Comentario eliminado")
         if payload.action in {ActionType.lock, ActionType.approve, ActionType.shadowban}:
             return ModerationActionResponse(applied=False, detail=f"Acción {payload.action} no implementada para comment")

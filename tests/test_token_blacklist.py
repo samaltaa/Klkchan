@@ -179,6 +179,72 @@ class TestLogoutRevokesRefreshToken:
         assert r.status_code == 200
 
 
+class TestDeletedUserTokenInvalid:
+    """
+    FIX 1 (Sprint 2.8): Tokens de usuarios eliminados deben retornar 401.
+
+    deps.py verifica la existencia del usuario en BD tras decodificar el token.
+    Si el usuario fue eliminado (por admin o por ban_user via moderation),
+    get_user_by_id() retorna None y el dep lanza 401.
+    No se necesita revocar el JTI explícitamente — la ausencia del usuario
+    ya invalida cualquier token emitido para ese sub.
+    """
+
+    def setup_method(self):
+        _clear_blacklist()
+
+    def test_admin_delete_user_token_becomes_invalid(self, client, temp_data_path):
+        """Admin elimina a alice → el token de alice retorna 401."""
+        # Registrar un usuario temporal para no afectar seed
+        _register(client, "victim1", "victim1@test.com", "Testpass1")
+        victim_token = client.post(
+            "/auth/login", data={"username": "victim1@test.com", "password": "Testpass1"}
+        ).json()["access_token"]
+
+        # Verificar que el token funciona antes de la eliminación
+        r = client.get("/users/me", headers={"Authorization": f"Bearer {victim_token}"})
+        assert r.status_code == 200
+
+        # Admin elimina al usuario
+        victim_id = r.json()["id"]
+        admin_token = _login(client, "admin@example.com")
+        r = client.delete(
+            f"/admin/users/{victim_id}",
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+        assert r.status_code == 204
+
+        # El token del usuario eliminado debe retornar 401
+        r = client.get("/users/me", headers={"Authorization": f"Bearer {victim_token}"})
+        assert r.status_code == 401
+
+    def test_mod_ban_user_token_becomes_invalid(self, client, temp_data_path):
+        """Mod banea (ban_user) a un usuario → el token del usuario retorna 401."""
+        # Registrar usuario temporal
+        _register(client, "victim2", "victim2@test.com", "Testpass1")
+        victim_token = client.post(
+            "/auth/login", data={"username": "victim2@test.com", "password": "Testpass1"}
+        ).json()["access_token"]
+
+        victim_id = client.get(
+            "/users/me", headers={"Authorization": f"Bearer {victim_token}"}
+        ).json()["id"]
+
+        # Mod ejecuta ban_user
+        admin_token = _login(client, "admin@example.com")
+        r = client.post(
+            "/moderation/actions",
+            json={"target_type": "user", "target_id": victim_id, "action": "ban_user"},
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+        assert r.status_code == 200
+        assert r.json()["applied"] is True
+
+        # El token del usuario baneado debe retornar 401
+        r = client.get("/users/me", headers={"Authorization": f"Bearer {victim_token}"})
+        assert r.status_code == 401
+
+
 class TestBlacklistInternals:
     def setup_method(self):
         _clear_blacklist()
