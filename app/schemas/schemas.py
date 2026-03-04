@@ -296,6 +296,10 @@ class ChangePasswordRequest(BaseModel):
     new_password: str = Field(..., min_length=8)
 
 
+class LogoutRequest(BaseModel):
+    refresh_token: Optional[str] = None
+
+
 class LogoutResponse(BaseModel):
     detail: str = "Logged out"
 
@@ -355,6 +359,7 @@ __all__ = [
     "ErrorResponse",
     "ForgotPasswordRequest",
     "ForgotPasswordResponse",
+    "LogoutRequest",
     "LogoutResponse",
     "OrmBase",
     "Post",

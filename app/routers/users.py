@@ -16,7 +16,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, Security, status
 
-from app.deps import get_current_user, oauth2_scheme
+from app.deps import get_current_payload, get_current_user, oauth2_scheme
+from app.utils.token_blacklist import revoke as revoke_token
 from app.schemas import ErrorResponse, UserListResponse, UserResponse, UserUpdate
 from app.services import (
     calculate_user_karma,
@@ -174,25 +175,29 @@ def retrieve_user(user_id: int) -> UserResponse:
     response_model=UserResponse,
     responses={
         status.HTTP_400_BAD_REQUEST: {"model": ErrorResponse},
+        status.HTTP_401_UNAUTHORIZED: {"model": ErrorResponse},
+        status.HTTP_403_FORBIDDEN: {"model": ErrorResponse},
         status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
     },
 )
-def update_existing_user(user_id: int, payload: UserUpdate) -> UserResponse:
+def update_existing_user(
+    user_id: int,
+    payload: UserUpdate,
+    current_user: dict = Depends(get_current_user),
+) -> UserResponse:
     """
     Actualiza el perfil de un usuario existente.
 
+    Solo el propio usuario o un administrador pueden modificar el perfil.
     Campos actualizables: username, email, display_name, bio, password.
     Si se provee password, se hashea antes de guardar. Los campos de
     contenido (username, display_name, bio) pasan por enforce_clean_text
     para filtrar lenguaje prohibido.
 
-    Nota: este endpoint NO verifica ownership (cualquier usuario autenticado
-    podría modificar a otro si conoce su ID). Para uso MVP interno; en
-    producción debería añadirse la verificación de propiedad.
-
     Args:
         user_id: ID del usuario a actualizar.
         payload: Campos a actualizar (todos opcionales via UserUpdate).
+        current_user: Usuario autenticado (inyectado por get_current_user).
 
     Returns:
         UserResponse del usuario actualizado con karma y posts recalculados.
@@ -200,9 +205,17 @@ def update_existing_user(user_id: int, payload: UserUpdate) -> UserResponse:
     Raises:
         HTTPException 400: Si no se provee ningún campo para actualizar.
         HTTPException 400: Si el contenido contiene palabras prohibidas.
+        HTTPException 401: Si el token no es válido.
+        HTTPException 403: Si el usuario no es el propietario ni admin.
         HTTPException 404: Si el usuario no existe.
         HTTPException 409: Si el nuevo email ya está en uso.
     """
+    roles = {str(r).lower() for r in current_user.get("roles", [])}
+    if current_user["id"] != user_id and "admin" not in roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permiso para editar este perfil",
+        )
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
@@ -224,17 +237,21 @@ def update_existing_user(user_id: int, payload: UserUpdate) -> UserResponse:
     status_code=status.HTTP_204_NO_CONTENT,
     responses={status.HTTP_401_UNAUTHORIZED: {"model": ErrorResponse}},
 )
-def delete_self(current_user: dict = Depends(get_current_user)) -> Response:
+def delete_self(
+    current_user: dict = Depends(get_current_user),
+    token_payload: dict = Depends(get_current_payload),
+) -> Response:
     """
     Elimina la cuenta del usuario autenticado (auto-eliminación).
 
     Elimina en cascada todos los posts, comentarios y votos del usuario
-    (via service_delete_user). El token activo no es revocado
-    explícitamente, pero al no existir el usuario, get_current_user
-    rechazará el token en futuros requests.
+    (via service_delete_user). Además revoca el access token activo
+    añadiéndolo a la blacklist, por lo que cualquier request posterior
+    con ese token recibirá 401 inmediatamente.
 
     Args:
         current_user: Usuario autenticado (inyectado por get_current_user).
+        token_payload: Claims del JWT activo (inyectado por get_current_payload).
 
     Returns:
         Respuesta vacía 204 No Content.
@@ -245,6 +262,10 @@ def delete_self(current_user: dict = Depends(get_current_user)) -> Response:
     """
     if not service_delete_user(current_user["id"]):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    jti = token_payload.get("jti")
+    exp = token_payload.get("exp", 0)
+    if jti:
+        revoke_token(jti, float(exp))
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

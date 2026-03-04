@@ -18,7 +18,7 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.utils.limiter import limiter
@@ -27,6 +27,7 @@ from app.schemas import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
+    LogoutRequest,
     LogoutResponse,
     RefreshTokenRequest,
     ResetPasswordRequest,
@@ -248,6 +249,10 @@ def refresh_tokens(request: Request, payload: RefreshTokenRequest) -> TokenPair:
     except Exception:  # pragma: no cover - jose raises JWTError
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
+    r_jti = refresh_payload.get("jti")
+    if r_jti and is_revoked(r_jti):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token revocado")
+
     user_id = refresh_payload.get("sub")
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
@@ -353,33 +358,45 @@ def change_password(
 
 @router.post("/logout", response_model=LogoutResponse)
 def logout(
+    body: Optional[LogoutRequest] = Body(default=None),
     token_payload: dict = Depends(get_current_payload),
     current_user: dict = Depends(get_current_user),
 ) -> LogoutResponse:
     """
     Cierra la sesión del usuario revocando el access token activo.
 
-    Extrae el jti (JWT ID único) del token y lo añade a la blacklist
-    hasta que expire naturalmente. Cualquier request posterior con ese
-    mismo token recibirá 401. El refresh token NO es revocado en este
-    endpoint (limitación actual).
+    Extrae el jti (JWT ID único) del access token y lo añade a la blacklist.
+    Si se proporciona refresh_token en el body, también revoca ese token
+    impidiendo que se use para obtener nuevos access tokens via /auth/refresh.
+    Si no se proporciona refresh_token, solo se revoca el access token
+    (comportamiento anterior, clientes existentes no se rompen).
 
     Args:
+        body: Body opcional con campo refresh_token (str o null).
         token_payload: Claims del JWT activo (inyectado por get_current_payload).
         current_user: Usuario autenticado (inyectado por get_current_user,
                       requerido para validar que el token es válido).
 
     Returns:
-        LogoutResponse con message="Sesión cerrada correctamente." (200 OK).
+        LogoutResponse con message="Logged out" (200 OK).
 
     Raises:
-        HTTPException 401: Si el token no es válido o ya fue revocado.
+        HTTPException 401: Si el access token no es válido o ya fue revocado.
     """
     _ = current_user
     jti = token_payload.get("jti")
     exp = token_payload.get("exp", 0)
     if jti:
         revoke_token(jti, float(exp))
+    if body and body.refresh_token:
+        try:
+            refresh_payload = decode_refresh_token(body.refresh_token)
+            r_jti = refresh_payload.get("jti")
+            r_exp = refresh_payload.get("exp", 0)
+            if r_jti:
+                revoke_token(r_jti, float(r_exp))
+        except Exception:
+            pass  # Refresh token inválido: ignorar silenciosamente
     return LogoutResponse()
 
 

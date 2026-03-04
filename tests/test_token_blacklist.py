@@ -101,6 +101,84 @@ class TestChangePasswordRevokesToken:
         assert r.status_code == 200
 
 
+class TestDeleteMeRevokesToken:
+    """FIX 2: DELETE /users/me debe revocar el access token activo."""
+
+    def setup_method(self):
+        _clear_blacklist()
+
+    def test_token_revoked_after_delete_me(self, client, temp_data_path):
+        """Tras DELETE /users/me el mismo token retorna 401."""
+        _register(client, "delme_user", "delme@example.com", "Testpass1")
+        token = _login(client, "delme@example.com", "Testpass1")
+
+        # Token funciona antes de eliminar
+        r = client.get("/users/me", headers={"Authorization": f"Bearer {token}"})
+        assert r.status_code == 200
+
+        # Eliminar cuenta
+        r = client.delete("/users/me", headers={"Authorization": f"Bearer {token}"})
+        assert r.status_code == 204
+
+        # El mismo token debe estar revocado
+        r = client.get("/users/me", headers={"Authorization": f"Bearer {token}"})
+        assert r.status_code == 401
+
+
+class TestLogoutRevokesRefreshToken:
+    """FIX 3: Logout con refresh_token en body debe revocar ese refresh token."""
+
+    def setup_method(self):
+        _clear_blacklist()
+
+    def _login_full(self, client, email: str, password: str = "Aa123456!") -> dict:
+        """Retorna access_token y refresh_token."""
+        r = client.post("/auth/login", data={"username": email, "password": password})
+        assert r.status_code == 200, f"login failed: {r.text}"
+        return r.json()
+
+    def test_logout_without_refresh_token_still_revokes_access(self, client, temp_data_path):
+        """Logout sin body sigue revocando el access token (compatibilidad)."""
+        tokens = self._login_full(client, "alice@example.com")
+        access = tokens["access_token"]
+
+        r = client.post("/auth/logout", headers={"Authorization": f"Bearer {access}"})
+        assert r.status_code == 200
+
+        r = client.get("/users/me", headers={"Authorization": f"Bearer {access}"})
+        assert r.status_code == 401
+
+    def test_logout_with_refresh_token_revokes_refresh(self, client, temp_data_path):
+        """Logout con refresh_token hace que POST /auth/refresh devuelva 401."""
+        tokens = self._login_full(client, "alice@example.com")
+        access = tokens["access_token"]
+        refresh = tokens["refresh_token"]
+
+        # Logout incluyendo el refresh token
+        r = client.post(
+            "/auth/logout",
+            json={"refresh_token": refresh},
+            headers={"Authorization": f"Bearer {access}"},
+        )
+        assert r.status_code == 200
+
+        # Intentar usar el refresh token revocado
+        r = client.post("/auth/refresh", json={"refresh_token": refresh})
+        assert r.status_code == 401
+
+    def test_logout_with_invalid_refresh_token_still_succeeds(self, client, temp_data_path):
+        """Logout con refresh_token inválido no falla — se ignora silenciosamente."""
+        tokens = self._login_full(client, "alice@example.com")
+        access = tokens["access_token"]
+
+        r = client.post(
+            "/auth/logout",
+            json={"refresh_token": "token.invalido.aqui"},
+            headers={"Authorization": f"Bearer {access}"},
+        )
+        assert r.status_code == 200
+
+
 class TestBlacklistInternals:
     def setup_method(self):
         _clear_blacklist()

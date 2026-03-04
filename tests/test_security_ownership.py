@@ -166,3 +166,59 @@ def test_unauthenticated_cannot_delete_comment(client: TestClient):
 
     r = client.delete(f"/comments/{comment_id}")
     assert r.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# User profile ownership — edit (FIX 1)
+# ---------------------------------------------------------------------------
+
+def test_user_cannot_edit_others_profile(client: TestClient):
+    """Bob no puede editar el perfil de Alice → 403."""
+    r_alice = client.post(
+        "/auth/register",
+        json={"username": "alice_ow9", "email": "alice_ow9@test.com", "password": "Testpass1"},
+    )
+    assert r_alice.status_code == 201
+    alice_id = r_alice.json()["id"]
+
+    bob_token = _register_and_login(client, "bob_ow9", "bob_ow9@test.com")
+
+    r = client.put(
+        f"/users/{alice_id}",
+        json={"bio": "hackeado por Bob"},
+        headers=_auth(bob_token),
+    )
+    assert r.status_code == 403
+    assert "permiso" in r.json()["detail"].lower()
+
+
+def test_owner_can_edit_own_profile(client: TestClient):
+    """Alice puede editar su propio perfil → 200."""
+    r_alice = client.post(
+        "/auth/register",
+        json={"username": "alice_ow10", "email": "alice_ow10@test.com", "password": "Testpass1"},
+    )
+    assert r_alice.status_code == 201
+    alice_id = r_alice.json()["id"]
+    alice_login = client.post("/auth/login", data={"username": "alice_ow10@test.com", "password": "Testpass1"})
+    alice_token = alice_login.json()["access_token"]
+
+    r = client.put(
+        f"/users/{alice_id}",
+        json={"bio": "mi nueva bio"},
+        headers=_auth(alice_token),
+    )
+    assert r.status_code == 200
+    assert r.json()["bio"] == "mi nueva bio"
+
+
+def test_unauthenticated_cannot_edit_profile(client: TestClient):
+    """Sin token no se puede editar un perfil → 401."""
+    r_alice = client.post(
+        "/auth/register",
+        json={"username": "alice_ow11", "email": "alice_ow11@test.com", "password": "Testpass1"},
+    )
+    alice_id = r_alice.json()["id"]
+
+    r = client.put(f"/users/{alice_id}", json={"bio": "sin token"})
+    assert r.status_code == 401
