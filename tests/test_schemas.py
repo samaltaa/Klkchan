@@ -54,29 +54,3 @@ def test_comment_create_valid():
     comment = CommentCreate(body="Test comment", post_id=1)
     assert comment.body == "Test comment"
     assert comment.post_id == 1
-
-
-def test_post_create_body_at_max_length_ok():
-    """PostCreate con body de exactamente 40000 chars → válido."""
-    post = PostCreate(title="Title", body="x" * 40000, board_id=1)
-    assert len(post.body) == 40000
-
-
-def test_post_create_body_exceeds_max_length_fails():
-    """PostCreate con body de 40001 chars → ValidationError."""
-    with pytest.raises(ValidationError):
-        PostCreate(title="Title", body="x" * 40001, board_id=1)
-
-
-def test_post_create_tags_at_max_length_ok():
-    """PostCreate con 10 tags → válido."""
-    tags = [f"tag{i}" for i in range(10)]
-    post = PostCreate(title="Title", body="Body", board_id=1, tags=tags)
-    assert len(post.tags) == 10
-
-
-def test_post_create_tags_exceeds_max_length_fails():
-    """PostCreate con 11 tags → ValidationError."""
-    tags = [f"tag{i}" for i in range(11)]
-    with pytest.raises(ValidationError):
-        PostCreate(title="Title", body="Body", board_id=1, tags=tags)

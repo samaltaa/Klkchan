@@ -367,20 +367,6 @@ class CommentListResponse(CursorPage):
     items: List[Comment] = Field(default_factory=list)
 
 
-class CommentUpdate(BaseModel):
-    """
-    Schema de actualización de comentario. Body de PATCH /comments/{id}.
-
-    Solo el body es editable. Todos los campos opcionales.
-    El endpoint rechaza el request si no se envía ningún campo (400).
-
-    Attributes:
-        body: Nuevo contenido del comentario, 1-2000 chars. None = sin cambio.
-    """
-
-    body: Optional[str] = Field(default=None, min_length=1, max_length=2000)
-
-
 class Reply(OrmBase):
     """
     Schema de respuesta de un reply (comentario hijo).
@@ -422,9 +408,9 @@ class PostBase(BaseModel):
     """
 
     title: str = Field(..., min_length=3, max_length=300)
-    body: str = Field(..., min_length=1, max_length=40000)
+    body: str = Field(..., min_length=1)
     board_id: int = Field(..., ge=1)
-    tags: List[str] = Field(default_factory=list, max_length=10)
+    tags: List[str] = Field(default_factory=list)
 
 
 class PostCreate(PostBase):
@@ -491,47 +477,6 @@ class PostListResponse(CursorPage):
     """Response de listado paginado de posts. Extiende CursorPage con items."""
 
     items: List[Post] = Field(default_factory=list)
-
-
-# ---------------------------------------------------------------------------
-# Admin moderation responses
-# ---------------------------------------------------------------------------
-class PostModerationResponse(BaseModel):
-    """
-    Response schema para acciones de moderación sobre un post (lock, sticky).
-
-    Retornado por POST /admin/posts/{id}/lock y POST /admin/posts/{id}/sticky.
-
-    Attributes:
-        post_id: ID del post afectado.
-        locked: Estado de bloqueo actual del post tras la acción.
-        sticky: Estado de fijado actual del post tras la acción.
-        detail: Mensaje descriptivo de la acción aplicada.
-    """
-
-    post_id: int
-    locked: bool
-    sticky: bool
-    detail: str
-
-
-class ShadowbanResponse(BaseModel):
-    """
-    Response schema para la acción de shadowban sobre un usuario.
-
-    Retornado por POST /admin/users/{id}/shadowban.
-
-    Attributes:
-        user_id: ID del usuario shadowbaneado.
-        username: Username del usuario afectado.
-        shadowbanned: Siempre True tras aplicar la acción.
-        detail: Mensaje descriptivo de la acción aplicada.
-    """
-
-    user_id: int
-    username: str
-    shadowbanned: bool
-    detail: str
 
 
 # ---------------------------------------------------------------------------
@@ -883,7 +828,6 @@ __all__ = [
     "CommentBase",
     "CommentCreate",
     "CommentListResponse",
-    "CommentUpdate",
     "CursorPage",
     "ErrorResponse",
     "ForgotPasswordRequest",
@@ -894,10 +838,8 @@ __all__ = [
     "Post",
     "PostCreate",
     "PostListResponse",
-    "PostModerationResponse",
     "PostUpdate",
     "Report",
-    "ShadowbanResponse",
     "ResendVerificationRequest",
     "ResetPasswordRequest",
     "ResetPasswordResponse",

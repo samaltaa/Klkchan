@@ -20,8 +20,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.deps import get_current_user
-from app.schemas import Comment, CommentCreate, CommentListResponse, CommentUpdate, ErrorResponse
-from app.services import build_comment_tree, create_comment, delete_comment, get_comment, get_comments, get_comments_for_post, get_post, update_comment
+from app.schemas import Comment, CommentCreate, CommentListResponse, ErrorResponse
+from app.services import build_comment_tree, create_comment, delete_comment, get_comments, get_comments_for_post, get_post
 from app.utils.content import enforce_clean_text
 
 router = APIRouter(prefix="/comments", tags=["Comments"])
@@ -106,91 +106,6 @@ def create_new_comment(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Parent comment belongs to a different post")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err)
     return created
-
-
-@router.get(
-    "/{comment_id}",
-    response_model=Comment,
-    responses={status.HTTP_404_NOT_FOUND: {"model": ErrorResponse}},
-)
-def retrieve_comment(comment_id: int) -> Comment:
-    """
-    Obtiene un comentario individual por su ID.
-
-    Endpoint público — no requiere autenticación. Retorna el comentario
-    con replies=[] y depth=0; el árbol real se obtiene vía
-    GET /posts/{id}/comments o GET /comments?post_id={id}.
-
-    Args:
-        comment_id: ID del comentario a recuperar.
-
-    Returns:
-        Comment con id, body, post_id, user_id, created_at, votes,
-        depth=0 y replies=[].
-
-    Raises:
-        HTTPException 404: Si el comentario no existe.
-    """
-    comment = get_comment(comment_id)
-    if not comment:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
-    return comment
-
-
-@router.patch(
-    "/{comment_id}",
-    response_model=Comment,
-    responses={
-        status.HTTP_400_BAD_REQUEST: {"model": ErrorResponse},
-        status.HTTP_401_UNAUTHORIZED: {"model": ErrorResponse},
-        status.HTTP_403_FORBIDDEN: {"model": ErrorResponse},
-        status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
-    },
-)
-def update_existing_comment(
-    comment_id: int,
-    payload: CommentUpdate,
-    current_user: dict = Depends(get_current_user),
-) -> Comment:
-    """
-    Actualiza el body de un comentario existente.
-
-    Solo el autor del comentario o un mod/admin pueden editarlo.
-    El body pasa por enforce_clean_text() para rechazar palabras prohibidas.
-    Requiere al menos un campo en el payload; un body vacío retorna 400.
-
-    Args:
-        comment_id: ID del comentario a actualizar.
-        payload: CommentUpdate con el campo body (opcional).
-        current_user: Usuario autenticado (inyectado por get_current_user).
-
-    Returns:
-        Comment actualizado con updated_at refrescado.
-
-    Raises:
-        HTTPException 400: Si el payload no contiene ningún campo.
-        HTTPException 400: Si body contiene palabras prohibidas.
-        HTTPException 401: Si no se provee un token válido.
-        HTTPException 403: Si el usuario no es owner ni mod/admin.
-        HTTPException 404: Si el comentario no existe.
-    """
-    comment = get_comment(comment_id)
-    if not comment:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
-
-    _check_comment_ownership(comment, current_user)
-
-    updates = payload.model_dump(exclude_none=True)
-    if not updates:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
-
-    if "body" in updates:
-        enforce_clean_text(updates["body"])
-
-    updated = update_comment(comment_id, updates)
-    if not updated:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
-    return updated
 
 
 @router.delete(

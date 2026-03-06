@@ -60,35 +60,25 @@ def generate_slug(title: str) -> str:
     return f"{slug}-{unique_id}"
 
 
-_DANGEROUS_TAGS = re.compile(
-    r"<(script|style|iframe|object|embed|form|noscript)[^>]*>.*?</\1>",
-    re.DOTALL | re.IGNORECASE,
-)
-
-
 def sanitize_html(text: str) -> str:
     """
     Elimina etiquetas HTML del texto para prevenir XSS.
 
-    Para etiquetas peligrosas (script, style, iframe, object, embed,
-    form, noscript) elimina tanto el tag como su contenido interior.
-    Para el resto de etiquetas (b, i, p, etc.) solo elimina el tag y
-    conserva el texto interior.
+    Usa una regex que captura cualquier tag HTML (incluyendo
+    self-closing y tags con atributos) y los descarta.
 
     Args:
         text: Texto potencialmente con HTML.
 
     Returns:
-        Texto sin etiquetas HTML ni contenido peligroso, con whitespace
-        recortado.
+        Texto sin ninguna etiqueta HTML, con whitespace recortado.
 
     TODO: Aplicar en POST /posts y POST /comments antes de persistir
           el body de los posts y comentarios (pendiente Sprint 3 /
           migración a Supabase). Actualmente no se invoca desde
           ningún endpoint.
     """
-    text = _DANGEROUS_TAGS.sub("", text)
-    clean = re.sub(r"<[^>]*>", "", text)
+    clean = re.sub(r"<.*?>", "", text)
     return clean.strip()
 
 

@@ -25,14 +25,12 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple, Dict, Any
 
-from pathlib import Path
-
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from dotenv import load_dotenv
 
-# Cargar .env desde la raíz del proyecto (robusto ante cualquier CWD)
-load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+# Cargar .env
+load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:

@@ -757,40 +757,6 @@ def create_comment(comment: Dict[str, Any]) -> Dict[str, Any]:
     return _build_comment(comment_copy)
 
 
-def update_comment(comment_id: int, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """
-    Actualiza los campos de un comentario existente.
-
-    Solo permite modificar los campos de la lista blanca: body. Otras claves
-    en updates son ignoradas. Valores None también son ignorados.
-
-    Args:
-        comment_id: ID del comentario a actualizar.
-        updates: Dict con los campos a actualizar. Claves no permitidas
-                 e valores None son descartados.
-
-    Returns:
-        Dict del comentario actualizado con todos los campos normalizados,
-        o None si el comentario no existe.
-    """
-    data = load_data()
-    allowed = {"body"}
-    for comment in data.get("comments", []):
-        if comment.get("id") == comment_id:
-            safe_updates = {
-                key: value
-                for key, value in updates.items()
-                if value is not None and key in allowed
-            }
-            if not safe_updates:
-                return get_comment(comment_id)
-            comment.update(safe_updates)
-            comment["updated_at"] = _now_utc_iso()
-            save_data(data)
-            return get_comment(comment_id)
-    return None
-
-
 def delete_comment(comment_id: int) -> bool:
     """
     Elimina un comentario y sus votos asociados en cascada.
@@ -1080,74 +1046,6 @@ def delete_post(post_id: int) -> bool:
         save_data(data)
         return True
     return False
-
-
-def lock_post(post_id: int) -> Optional[Dict[str, Any]]:
-    """
-    Marca un post como locked, impidiendo la creación de nuevos comentarios.
-
-    La operación es idempotente: si el post ya estaba locked, lo deja igual.
-
-    Args:
-        post_id: ID del post a bloquear.
-
-    Returns:
-        Dict del post actualizado con locked=True, o None si no existe.
-    """
-    data = load_data()
-    for post in data.get("posts", []):
-        if post.get("id") == post_id:
-            post["locked"] = True
-            post["updated_at"] = _now_utc_iso()
-            save_data(data)
-            return get_post(post_id)
-    return None
-
-
-def sticky_post(post_id: int) -> Optional[Dict[str, Any]]:
-    """
-    Marca un post como sticky (fijado al inicio de su board).
-
-    La operación es idempotente: si el post ya era sticky, lo deja igual.
-
-    Args:
-        post_id: ID del post a fijar.
-
-    Returns:
-        Dict del post actualizado con sticky=True, o None si no existe.
-    """
-    data = load_data()
-    for post in data.get("posts", []):
-        if post.get("id") == post_id:
-            post["sticky"] = True
-            post["updated_at"] = _now_utc_iso()
-            save_data(data)
-            return get_post(post_id)
-    return None
-
-
-def shadowban_user(user_id: int) -> Optional[Dict[str, Any]]:
-    """
-    Aplica shadowban a un usuario.
-
-    El usuario shadowbanned puede seguir publicando con normalidad,
-    pero su contenido no será visible para el resto de usuarios.
-    La operación es idempotente.
-
-    Args:
-        user_id: ID del usuario a shadowbanear.
-
-    Returns:
-        Dict del usuario actualizado con shadowbanned=True, o None si no existe.
-    """
-    data = load_data()
-    for user in data["users"]:
-        if user.get("id") == user_id:
-            user["shadowbanned"] = True
-            user["updated_at"] = _now_utc_iso()
-            save_data(data)
-            return get_user(user_id)
-    return None
 
 
 # ---------------------------------------------------------------------------
