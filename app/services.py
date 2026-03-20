@@ -42,6 +42,8 @@ EMPTY_STRUCTURE: Dict[str, Any] = {
         "reports": [],
         "actions": [],
     },
+    "terms_and_conditions": [],
+    "terms_acceptances": [],
 }
 
 
@@ -1497,3 +1499,118 @@ def _log_moderation_action(
         "report_id": report_id,
     }
     data["moderation"]["actions"].append(entry)
+
+
+# ---------------------------------------------------------------------------
+# Servicios de Términos y Condiciones
+# ---------------------------------------------------------------------------
+
+def _ensure_terms_root(data: Dict[str, Any]) -> None:
+    """
+    Garantiza que las colecciones de T&C existan en el documento de datos.
+
+    Crea las listas terms_and_conditions y terms_acceptances si no están
+    presentes. Modifica data in-place; el llamador debe persistir con save_data().
+
+    Args:
+        data: Documento JSON completo cargado con load_data().
+    """
+    data.setdefault("terms_and_conditions", [])
+    data.setdefault("terms_acceptances", [])
+
+
+def get_active_terms() -> Optional[Dict[str, Any]]:
+    """
+    Retorna los Términos y Condiciones actualmente vigentes, o None si no existen.
+
+    Solo puede haber un registro con is_active=True. Si hubiera más de uno
+    (inconsistencia de datos), retorna el primero encontrado.
+
+    Returns:
+        Dict con id, version, content_url, is_active y created_at del T&C
+        activo, o None si no hay ningún T&C activo en el sistema.
+    """
+    data = load_data()
+    _ensure_terms_root(data)
+    return next(
+        (t for t in data["terms_and_conditions"] if t.get("is_active")),
+        None,
+    )
+
+
+def get_user_acceptance(user_id: int, terms_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Busca la aceptación de un usuario para una versión específica de los T&C.
+
+    Args:
+        user_id: ID del usuario cuya aceptación se busca.
+        terms_id: ID de los T&C cuya aceptación se verifica.
+
+    Returns:
+        Dict de la aceptación si existe, None si el usuario no ha aceptado
+        esa versión de los T&C.
+    """
+    data = load_data()
+    _ensure_terms_root(data)
+    return next(
+        (
+            a
+            for a in data["terms_acceptances"]
+            if a.get("user_id") == user_id and a.get("terms_id") == terms_id
+        ),
+        None,
+    )
+
+
+def create_acceptance(user_id: int, terms_id: int, ip_address: str) -> Dict[str, Any]:
+    """
+    Registra la aceptación de los T&C por parte de un usuario.
+
+    Es idempotente: si el usuario ya aceptó esa versión, no crea un registro
+    duplicado y retorna la aceptación existente.
+
+    Args:
+        user_id: ID del usuario que acepta los T&C.
+        terms_id: ID de la versión de T&C aceptada.
+        ip_address: Dirección IP del cliente (IPv4 o IPv6, máx 45 chars).
+
+    Returns:
+        Dict de la aceptación existente o recién creada, con id, user_id,
+        terms_id, ip_address y accepted_at.
+    """
+    existing = get_user_acceptance(user_id, terms_id)
+    if existing:
+        return existing
+
+    data = load_data()
+    _ensure_terms_root(data)
+
+    acceptance = {
+        "id": _next_id(data["terms_acceptances"]),
+        "user_id": user_id,
+        "terms_id": terms_id,
+        "ip_address": ip_address[:45],
+        "accepted_at": _now_utc_iso(),
+    }
+    data["terms_acceptances"].append(acceptance)
+    save_data(data)
+    return acceptance
+
+
+def has_accepted_current_terms(user_id: int) -> bool:
+    """
+    Verifica si un usuario ha aceptado la versión vigente de los T&C.
+
+    Si no hay T&C activos en el sistema, retorna True (no hay nada que aceptar).
+
+    Args:
+        user_id: ID del usuario a verificar.
+
+    Returns:
+        True si el usuario aceptó los T&C activos o si no hay T&C activos.
+        False si hay T&C activos y el usuario no los ha aceptado aún.
+    """
+    active = get_active_terms()
+    if not active:
+        return True
+    return get_user_acceptance(user_id, active["id"]) is not None

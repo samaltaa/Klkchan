@@ -30,7 +30,7 @@ from jose import JWTError  # ✅ captura explícita de errores JWT
 
 from app.utils.security import decode_access_token
 from app.utils.token_blacklist import is_revoked
-from app.services import get_user_by_id
+from app.services import get_user_by_id, get_active_terms, get_user_acceptance
 from app.utils.roles import Role
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -176,6 +176,49 @@ def require_role(*accepted: Role):
         return user
 
     return dep
+
+
+def require_terms_accepted(current_user: Dict[str, Any] = Depends(get_current_user)) -> None:
+    """
+    Dependency que verifica que el usuario haya aceptado los T&C vigentes.
+
+    Si no hay T&C activos en el sistema, permite el acceso sin restricciones.
+    Si hay T&C activos y el usuario no los ha aceptado, lanza 403 con código
+    de error máquina TERMS_NOT_ACCEPTED para que el cliente pueda redirigir
+    al flujo de aceptación.
+
+    Uso en endpoint:
+        @router.post("/accion", dependencies=[Depends(require_terms_accepted)])
+        def accion_protegida(): ...
+
+    Uso cuando además se necesita el usuario:
+        def endpoint(
+            _: None = Depends(require_terms_accepted),
+            current_user: dict = Depends(get_current_user),
+        ): ...
+
+    Args:
+        current_user: Usuario autenticado inyectado por get_current_user.
+
+    Raises:
+        HTTPException 401: Si el token es inválido (propagado por get_current_user).
+        HTTPException 403: Si hay T&C activos y el usuario no los ha aceptado.
+                           El detail incluye code, message y current_version.
+    """
+    active = get_active_terms()
+    if not active:
+        return  # Sin T&C activos no hay restricción
+
+    accepted = get_user_acceptance(current_user["id"], active["id"])
+    if not accepted:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "TERMS_NOT_ACCEPTED",
+                "message": "Debes aceptar los términos y condiciones.",
+                "current_version": active["version"],
+            },
+        )
 
 
 def require_scopes(required: Sequence[str]):

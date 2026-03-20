@@ -813,6 +813,56 @@ class ResendVerificationRequest(BaseModel):
     email: EmailStr
 
 
+# ---------------------------------------------------------------------------
+# Términos y condiciones
+# ---------------------------------------------------------------------------
+class TermsOut(OrmBase):
+    """
+    Schema de respuesta con los datos de una versión de Términos y Condiciones.
+
+    Retornado por GET /terms/latest.
+
+    Attributes:
+        id: ID único del registro de T&C.
+        version: Identificador de versión (p.ej. "v1.0", "2024-01").
+        content_url: URL al texto completo de los T&C (archivo estático).
+        is_active: Indica si esta es la versión actualmente vigente.
+        created_at: Fecha y hora de creación del registro en UTC.
+    """
+
+    id: int
+    version: str
+    content_url: str
+    is_active: bool
+    created_at: datetime
+
+
+class TermsAcceptRequest(BaseModel):
+    """
+    Body de POST /terms/accept.
+
+    El cuerpo está vacío: el user_id proviene del token JWT y los T&C
+    activos se resuelven en el servidor. La IP se extrae del request.
+    """
+
+
+class TermsStatusOut(BaseModel):
+    """
+    Estado de aceptación de T&C del usuario autenticado.
+
+    Retornado por GET /terms/status.
+
+    Attributes:
+        up_to_date: True si el usuario ya aceptó la versión activa de los T&C.
+                    False si no hay aceptación o si aceptó una versión anterior.
+        current_version: Versión actualmente vigente de los T&C.
+                         None si no hay T&C activos en el sistema.
+    """
+
+    up_to_date: bool
+    current_version: Optional[str] = None
+
+
 __all__ = [
     "Attachment",
     "Board",
@@ -855,4 +905,7 @@ __all__ = [
     "UserForumSubscription",
     "VerifyEmailRequest",
     "Vote",
+    "TermsOut",
+    "TermsAcceptRequest",
+    "TermsStatusOut",
 ]

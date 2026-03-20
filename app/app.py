@@ -22,6 +22,7 @@ from app.routers import (
     moderation,
     posts,
     reports,
+    terms,
     users,
 )
 from app.services import load_data
@@ -56,6 +57,7 @@ app = FastAPI(
         {"name": "Admin", "description": "Administrative endpoints."},
         {"name": "Moderation", "description": "Moderation queue and actions."},
         {"name": "Interactions", "description": "Votes and social interactions."},
+        {"name": "Terms", "description": "Términos y Condiciones del servicio."},
     ],
 )
 
@@ -99,6 +101,7 @@ app.include_router(admin.router)
 app.include_router(moderation.router)
 app.include_router(interactions.router)
 app.include_router(reports.router)
+app.include_router(terms.router)
 
 
 @app.get("/health", tags=["System"])
