@@ -179,6 +179,7 @@ class User(OrmBase, UserBase):
     posts: List[int] = Field(default_factory=list)
     roles: List[str] = Field(default_factory=lambda: ["user"])
     is_active: bool = True
+    is_banned: bool = False
     karma: int = 0
     post_karma: int = 0
     comment_karma: int = 0
@@ -345,8 +346,14 @@ class Comment(OrmBase, CommentBase):
         parent_id: ID del comentario padre. None si es comentario raíz.
         depth: Nivel de anidación (0 = raíz, 1 = reply directa, etc.).
         replies: Lista de comentarios hijo anidados (recursivo hasta 6 niveles).
+
+    Nota: body no tiene min_length en este schema de respuesta; la
+    restricción aplica solo en CommentCreate (input del cliente). Tras
+    sanitización HTML el cuerpo almacenado puede quedar vacío.
     """
 
+    # Sobreescritura para permitir cadenas vacías en datos ya almacenados.
+    body: str = Field(default="")
     id: int
     post_id: int
     user_id: int
@@ -460,8 +467,16 @@ class Post(OrmBase, PostBase):
         comment_count: Número total de comentarios del post, calculado al vuelo.
         attachments: Lista de adjuntos del post.
         comments: Árbol de comentarios anidados (ver Comment.replies).
+
+    Nota: body y title no tienen min_length en este schema de respuesta;
+    la restricción aplica solo en PostCreate (input del cliente). Tras
+    sanitización HTML el cuerpo almacenado puede quedar vacío.
     """
 
+    # Sobreescritura para permitir cadenas vacías en datos ya almacenados
+    # (el min_length=1 aplica solo a PostCreate, no al response).
+    title: str = Field(...)
+    body: str = Field(default="")
     id: int
     user_id: int
     created_at: datetime
@@ -743,17 +758,17 @@ class ForgotPasswordResponse(BaseModel):
     """
     Response de POST /auth/forgot-password.
 
-    El endpoint siempre retorna el mismo mensaje independientemente
-    de si el email existe, para no revelar qué emails están registrados.
+    El endpoint siempre retorna el mismo mensaje genérico independientemente
+    de si el email existe, para no revelar qué emails están registrados
+    (anti-enumeración). El reset_token se genera internamente y se enviará
+    por email al usuario (integración MODEL-32, pendiente de Supabase).
 
     Attributes:
-        detail: Mensaje genérico de confirmación.
-        reset_token: Token de reset. TODO: eliminar en producción —
-                     en producción se envía por email, no en la respuesta.
+        message: Mensaje genérico de confirmación. Igual para emails
+                 existentes y no existentes (anti-enumeración).
     """
 
-    detail: str = "If the email exists, reset instructions were sent"
-    reset_token: Optional[str] = None  # TODO: eliminar en producción — enviar por email
+    message: str = "Si el email existe, recibirás instrucciones de recuperación"
 
 
 class ResetPasswordRequest(BaseModel):

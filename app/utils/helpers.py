@@ -60,26 +60,50 @@ def generate_slug(title: str) -> str:
     return f"{slug}-{unique_id}"
 
 
+_DANGEROUS_TAGS = frozenset(
+    {"script", "style", "iframe", "object", "embed", "form", "noscript"}
+)
+
+
 def sanitize_html(text: str) -> str:
     """
-    Elimina etiquetas HTML del texto para prevenir XSS.
+    Elimina etiquetas HTML del texto para prevenir XSS stored.
 
-    Usa una regex que captura cualquier tag HTML (incluyendo
-    self-closing y tags con atributos) y los descarta.
+    Para tags peligrosos (script, style, iframe, object, embed, form,
+    noscript) elimina tanto el tag como su contenido interior completo.
+    Para el resto de tags (b, i, p, span, div, a, etc.) solo elimina
+    el marcador HTML y conserva el texto interior.
+
+    Implementado solo con el módulo estándar ``re`` (sin dependencias
+    externas).
 
     Args:
         text: Texto potencialmente con HTML.
 
     Returns:
-        Texto sin ninguna etiqueta HTML, con whitespace recortado.
+        Texto limpio sin etiquetas HTML, con whitespace recortado.
+        Tags peligrosos → vacíos. Tags benignos → solo se elimina el tag.
 
-    TODO: Aplicar en POST /posts y POST /comments antes de persistir
-          el body de los posts y comentarios (pendiente Sprint 3 /
-          migración a Supabase). Actualmente no se invoca desde
-          ningún endpoint.
+    Ejemplos:
+        "<script>alert('xss')</script>" → ""
+        "<b>hola</b> mundo"            → "hola mundo"
+        "texto <style>body{}</style>"  → "texto"
     """
-    clean = re.sub(r"<.*?>", "", text)
-    return clean.strip()
+    # 1. Eliminar tags peligrosos CON su contenido interior
+    for tag in _DANGEROUS_TAGS:
+        # Con contenido y cierre: <script ...>...</script>
+        text = re.sub(
+            rf"<{tag}(?:\s[^>]*)?>.*?</{tag}>",
+            "",
+            text,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        # Sin cierre o auto-cerrado: <iframe src="x"> / <br/>
+        text = re.sub(rf"<{tag}(?:\s[^>]*)?/?>", "", text, flags=re.IGNORECASE)
+
+    # 2. Eliminar el resto de tags (benignos), preservando su contenido
+    text = re.sub(r"<[^>]+>", "", text)
+    return text.strip()
 
 
 def paginate_list(items: list[Any], page: int = 1, limit: int = 10) -> dict:

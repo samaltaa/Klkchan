@@ -43,6 +43,7 @@ from app.services import (
     update_post,
 )
 from app.utils.content import enforce_clean_text
+from app.utils.helpers import sanitize_html
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
@@ -193,6 +194,8 @@ def create_new_post(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Board not found")
     enforce_clean_text(payload.title, payload.body)
     post_data = payload.model_dump()
+    post_data["title"] = sanitize_html(post_data["title"])
+    post_data["body"] = sanitize_html(post_data["body"])
     post_data["user_id"] = current_user["id"]
     created = create_post(post_data)
     return created
@@ -242,6 +245,10 @@ def update_existing_post(
     if not updates:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
     enforce_clean_text(updates.get("title"), updates.get("body"))
+    if "title" in updates:
+        updates["title"] = sanitize_html(updates["title"])
+    if "body" in updates:
+        updates["body"] = sanitize_html(updates["body"])
     updated = update_post(post_id, updates)
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")

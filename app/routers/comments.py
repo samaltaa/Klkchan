@@ -23,6 +23,7 @@ from app.deps import get_current_user
 from app.schemas import Comment, CommentCreate, CommentListResponse, ErrorResponse
 from app.services import build_comment_tree, create_comment, delete_comment, get_comments, get_comments_for_post, get_post
 from app.utils.content import enforce_clean_text
+from app.utils.helpers import sanitize_html
 
 router = APIRouter(prefix="/comments", tags=["Comments"])
 
@@ -95,6 +96,7 @@ def create_new_comment(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
     enforce_clean_text(payload.body)
     comment_dict = payload.model_dump()
+    comment_dict["body"] = sanitize_html(comment_dict["body"])
     comment_dict["user_id"] = current_user["id"]
     try:
         created = create_comment(comment_dict)
