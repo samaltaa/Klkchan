@@ -200,6 +200,12 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()) ->
             detail="Invalid credentials",
         )
 
+    if user.get("is_banned"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cuenta suspendida",
+        )
+
     roles = user.get("roles", ["user"])
     access_token = create_access_token(
         data={"sub": str(user["id"]), "roles": roles},
@@ -407,23 +413,20 @@ def forgot_password(request: Request, body: ForgotPasswordRequest) -> ForgotPass
     Inicia el flujo de recuperación de contraseña.
 
     Si el email está registrado, genera un token JWT de uso único
-    (tipo "reset", firmado, con expiración corta) para el usuario.
-    Siempre retorna 202 independientemente de si el email existe o no,
-    para evitar enumerar usuarios registrados (timing-safe response).
+    (tipo "reset", firmado, con expiración corta) y lo guarda internamente.
+    En producción el token se enviará por email (MODEL-32, pendiente de
+    integración con Supabase). El token NUNCA se devuelve en la respuesta.
 
-    IMPORTANTE — Estado actual (MVP):
-    El reset_token se devuelve directamente en la respuesta JSON.
-    En producción, este token debe enviarse por email al usuario y
-    el campo reset_token de la respuesta debe ser null siempre.
-    Ver TODO en el código (integración de email pendiente: MODEL-32).
+    Siempre retorna 202 con el mismo mensaje genérico independientemente de
+    si el email existe o no (anti-enumeración de cuentas).
 
     Args:
         request: Request de FastAPI (requerido por el rate limiter).
         body: Objeto con el campo email del usuario.
 
     Returns:
-        ForgotPasswordResponse con reset_token (string JWT) si el email
-        existe, o reset_token=null si no existe. Siempre 202 Accepted.
+        ForgotPasswordResponse con campo message (mensaje genérico).
+        Siempre 202 Accepted — no revela si el email está registrado.
 
     Raises:
         HTTPException 429: Si se supera el límite de 5 solicitudes/minuto.
@@ -431,13 +434,12 @@ def forgot_password(request: Request, body: ForgotPasswordRequest) -> ForgotPass
     email = normalize_email(body.email)
     user = get_user_by_email(email)
 
-    reset_token = None
     if user:
-        token, _jti, _exp_ts = create_password_reset_token(user["id"])
-        reset_token = token  # TODO: enviar por email en producción, no retornar aquí
+        # Genera el token internamente; en producción se envía por email (MODEL-32)
+        _token, _jti, _exp_ts = create_password_reset_token(user["id"])
 
-    # Siempre retorna 202 — no revelar si el email está registrado
-    return ForgotPasswordResponse(reset_token=reset_token)
+    # Siempre retorna 202 con mensaje genérico — no revelar si el email existe
+    return ForgotPasswordResponse()
 
 
 @router.post("/reset-password", response_model=ResetPasswordResponse)

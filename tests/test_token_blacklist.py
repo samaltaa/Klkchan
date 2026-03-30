@@ -219,7 +219,13 @@ class TestDeletedUserTokenInvalid:
         assert r.status_code == 401
 
     def test_mod_ban_user_token_becomes_invalid(self, client, temp_data_path):
-        """Mod banea (ban_user) a un usuario → el token del usuario retorna 401."""
+        """Mod banea (ban_user) a un usuario → el token del usuario retorna 403.
+
+        Nota: a diferencia de delete (que retorna 401 porque el usuario ya no existe),
+        ban_user marca is_banned=True sin borrar la cuenta. El access token sigue
+        siendo válido criptográficamente, pero get_current_user devuelve 403 al
+        detectar is_banned=True ("Tu cuenta ha sido suspendida").
+        """
         # Registrar usuario temporal
         _register(client, "victim2", "victim2@test.com", "Testpass1")
         victim_token = client.post(
@@ -240,9 +246,9 @@ class TestDeletedUserTokenInvalid:
         assert r.status_code == 200
         assert r.json()["applied"] is True
 
-        # El token del usuario baneado debe retornar 401
+        # El token del usuario baneado debe retornar 403 (suspendido, no eliminado)
         r = client.get("/users/me", headers={"Authorization": f"Bearer {victim_token}"})
-        assert r.status_code == 401
+        assert r.status_code == 403
 
 
 class TestBlacklistInternals:

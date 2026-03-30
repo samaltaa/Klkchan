@@ -121,6 +121,12 @@ async def get_current_user(
     if not user:
         raise _unauthorized("Usuario no encontrado")
 
+    if user.get("is_banned"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tu cuenta ha sido suspendida",
+        )
+
     # Invalidar tokens emitidos antes de un reset de contraseña
     iat_cutoff = user.get("iat_cutoff")
     if iat_cutoff and payload.get("iat", 0) <= iat_cutoff:

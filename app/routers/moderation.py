@@ -27,6 +27,7 @@ from app.utils.roles import Role
 from app.services import (
     get_user,
     delete_user,
+    ban_user,
     get_post,
     delete_post,
     get_comment,
@@ -164,14 +165,22 @@ def moderation_actions(payload: ModerationActionRequest):
 
     # USER
     if payload.target_type == TargetType.user:
-        if payload.action in {ActionType.ban_user, ActionType.remove}:
+        if payload.action == ActionType.ban_user:
+            user = get_user(payload.target_id)
+            if not user:
+                raise HTTPException(status_code=404, detail="Usuario no encontrado")
+            result = ban_user(payload.target_id)
+            if not result:
+                raise HTTPException(status_code=500, detail="No se pudo suspender el usuario")
+            return ModerationActionResponse(applied=True, detail="Usuario suspendido correctamente")
+        if payload.action == ActionType.remove:
             user = get_user(payload.target_id)
             if not user:
                 raise HTTPException(status_code=404, detail="Usuario no encontrado")
             ok = delete_user(payload.target_id)
             if not ok:
                 raise HTTPException(status_code=500, detail="No se pudo eliminar el usuario")
-            return ModerationActionResponse(applied=True, detail="Usuario eliminado/baneado")
+            return ModerationActionResponse(applied=True, detail="Usuario eliminado")
         return ModerationActionResponse(applied=False, detail=f"Acción {payload.action} no implementada para user")
 
     # POST

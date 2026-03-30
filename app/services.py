@@ -415,6 +415,29 @@ def delete_user(user_id: int) -> bool:
     return False
 
 
+def ban_user(user_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Suspende a un usuario marcando is_banned=True sin eliminar la cuenta.
+
+    El usuario baneado no puede iniciar sesión ni usar tokens activos,
+    pero su cuenta y contenido permanecen en el sistema. Para un borrado
+    completo usar delete_user().
+
+    Args:
+        user_id: ID del usuario a suspender.
+
+    Returns:
+        Dict del usuario actualizado, o None si no existe.
+    """
+    data = load_data()
+    for user in data["users"]:
+        if user.get("id") == user_id:
+            user["is_banned"] = True
+            save_data(data)
+            return user
+    return None
+
+
 def calculate_user_karma(user_id: int) -> Dict[str, int]:
     """
     Calcula el karma de un usuario a partir de los votos recibidos en su contenido.
