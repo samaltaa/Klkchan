@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.deps import get_current_user, require_role
 from app.schemas import ErrorResponse, RoleUpdate, RoleUpdateResponse, User, UserListResponse
-from app.services import delete_user, get_user, get_users, load_data, update_user_roles
+from app.services import delete_user, get_post, get_user, get_users, load_data, lock_post, shadowban_user, sticky_post, update_user_roles
 from app.utils.roles import Role
 
 router = APIRouter(
@@ -249,3 +249,125 @@ def delete_user_admin(
     if not delete_user(user_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/posts/{post_id}/lock",
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+        status.HTTP_403_FORBIDDEN: {"model": ErrorResponse},
+    },
+)
+def lock_post_admin(post_id: int) -> dict:
+    """
+    Bloquea un post impidiendo nuevos comentarios. Solo admin.
+
+    Idempotente: bloquear un post ya bloqueado retorna 200 sin error.
+
+    Args:
+        post_id: ID del post a bloquear.
+
+    Returns:
+        Dict con post_id, locked (True), sticky y detail.
+
+    Raises:
+        HTTPException 401: Si no se provee un token válido.
+        HTTPException 403: Si el usuario no tiene rol admin.
+        HTTPException 404: Si el post no existe.
+    """
+    post = get_post(post_id)
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+    updated = lock_post(post_id)
+    return {
+        "post_id": post_id,
+        "locked": updated.get("locked", True),
+        "sticky": updated.get("sticky", False),
+        "detail": "Post locked",
+    }
+
+
+@router.post(
+    "/posts/{post_id}/sticky",
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+        status.HTTP_403_FORBIDDEN: {"model": ErrorResponse},
+    },
+)
+def sticky_post_admin(post_id: int) -> dict:
+    """
+    Fija un post en la parte superior de su board. Solo admin.
+
+    Idempotente: fijar un post ya fijado retorna 200 sin error.
+    Un post puede estar locked y sticky simultáneamente.
+
+    Args:
+        post_id: ID del post a fijar.
+
+    Returns:
+        Dict con post_id, locked, sticky (True) y detail.
+
+    Raises:
+        HTTPException 401: Si no se provee un token válido.
+        HTTPException 403: Si el usuario no tiene rol admin.
+        HTTPException 404: Si el post no existe.
+    """
+    post = get_post(post_id)
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+    updated = sticky_post(post_id)
+    return {
+        "post_id": post_id,
+        "locked": updated.get("locked", False),
+        "sticky": updated.get("sticky", True),
+        "detail": "Post marked as sticky",
+    }
+
+
+@router.post(
+    "/users/{user_id}/shadowban",
+    responses={
+        status.HTTP_400_BAD_REQUEST: {"model": ErrorResponse},
+        status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+        status.HTTP_403_FORBIDDEN: {"model": ErrorResponse},
+    },
+)
+def shadowban_user_admin(
+    user_id: int,
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """
+    Aplica un shadowban a un usuario. Solo admin.
+
+    El usuario shadowbaneado no recibe notificación; su contenido queda
+    oculto para el resto de usuarios pero él lo sigue viendo con normalidad.
+    Idempotente.
+
+    Args:
+        user_id: ID del usuario a shadowbanear.
+        current_user: Admin autenticado (inyectado por get_current_user).
+
+    Returns:
+        Dict con user_id, username, shadowbanned (True) y detail.
+
+    Raises:
+        HTTPException 400: Si el admin intenta shadowbanearse a sí mismo.
+        HTTPException 401: Si no se provee un token válido.
+        HTTPException 403: Si el usuario no tiene rol admin.
+        HTTPException 404: Si el usuario no existe.
+    """
+    if user_id == current_user["id"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot shadowban yourself",
+        )
+    user = get_user(user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    updated = shadowban_user(user_id)
+    return {
+        "user_id": user_id,
+        "username": updated.get("username", ""),
+        "shadowbanned": updated.get("shadowbanned", True),
+        "detail": "User shadowbanned",
+    }
