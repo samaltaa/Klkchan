@@ -328,6 +328,20 @@ class CommentCreate(CommentBase):
     parent_id: Optional[int] = Field(default=None, ge=1)
 
 
+class CommentUpdate(BaseModel):
+    """
+    Schema de actualización parcial de comentario. Body de PATCH /comments/{id}.
+
+    Todos los campos son opcionales — el endpoint rechaza el request
+    si no se envía ningún campo (400).
+
+    Attributes:
+        body: Nuevo contenido del comentario, 1-8000 chars. None = sin cambio.
+    """
+
+    body: Optional[str] = Field(default=None, min_length=1, max_length=8000)
+
+
 class Comment(OrmBase, CommentBase):
     """
     Schema de respuesta de un comentario, con soporte para árbol anidado.
@@ -892,6 +906,7 @@ __all__ = [
     "Comment",
     "CommentBase",
     "CommentCreate",
+    "CommentUpdate",
     "CommentListResponse",
     "CursorPage",
     "ErrorResponse",

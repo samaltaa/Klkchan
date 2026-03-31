@@ -20,8 +20,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.deps import get_current_user
-from app.schemas import Comment, CommentCreate, CommentListResponse, ErrorResponse
-from app.services import build_comment_tree, create_comment, delete_comment, get_comments, get_comments_for_post, get_post
+from app.schemas import Comment, CommentCreate, CommentUpdate, CommentListResponse, ErrorResponse
+from app.services import build_comment_tree, create_comment, delete_comment, get_comment, get_comments, get_comments_for_post, get_post, update_comment
 from app.utils.content import enforce_clean_text
 from app.utils.helpers import sanitize_html
 
@@ -92,8 +92,11 @@ def create_new_comment(
         HTTPException 404: Si el post (post_id) no existe.
         HTTPException 404: Si parent_id no existe.
     """
-    if not get_post(payload.post_id):
+    post = get_post(payload.post_id)
+    if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+    if post.get("locked"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Post is locked")
     enforce_clean_text(payload.body)
     comment_dict = payload.model_dump()
     comment_dict["body"] = sanitize_html(comment_dict["body"])
@@ -146,6 +149,82 @@ def delete_existing_comment(comment_id: int, current_user: dict = Depends(get_cu
     if not delete_comment(comment_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get(
+    "/{comment_id}",
+    response_model=Comment,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+    },
+)
+def get_comment_by_id(comment_id: int) -> Comment:
+    """
+    Retorna un comentario por su ID.
+
+    Endpoint público — no requiere autenticación.
+
+    Args:
+        comment_id: ID del comentario a recuperar.
+
+    Returns:
+        Comment con depth=0 y replies=[] (sin árbol anidado).
+
+    Raises:
+        HTTPException 404: Si el comentario no existe.
+    """
+    comment = get_comment(comment_id)
+    if not comment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
+    comment.setdefault("replies", [])
+    comment.setdefault("depth", 0)
+    return comment
+
+
+@router.patch(
+    "/{comment_id}",
+    response_model=Comment,
+    responses={
+        status.HTTP_400_BAD_REQUEST: {"model": ErrorResponse},
+        status.HTTP_401_UNAUTHORIZED: {"model": ErrorResponse},
+        status.HTTP_403_FORBIDDEN: {"model": ErrorResponse},
+        status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+    },
+)
+def update_existing_comment(
+    comment_id: int,
+    payload: CommentUpdate,
+    current_user: dict = Depends(get_current_user),
+) -> Comment:
+    """
+    Actualiza el body de un comentario. Solo el autor o un mod/admin puede editarlo.
+
+    Args:
+        comment_id: ID del comentario a actualizar.
+        payload: Datos de actualización; solo el campo body.
+        current_user: Usuario autenticado (inyectado por get_current_user).
+
+    Returns:
+        Comment actualizado con updated_at renovado.
+
+    Raises:
+        HTTPException 400: Si el payload está vacío o el body contiene palabras prohibidas.
+        HTTPException 401: Si no se provee un token válido.
+        HTTPException 403: Si el usuario no es owner ni mod/admin.
+        HTTPException 404: Si el comentario no existe.
+    """
+    if payload.body is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
+    comment = get_comment(comment_id)
+    if not comment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
+    _check_comment_ownership(comment, current_user)
+    enforce_clean_text(payload.body)
+    body = sanitize_html(payload.body)
+    updated = update_comment(comment_id, body)
+    updated.setdefault("replies", [])
+    updated.setdefault("depth", 0)
+    return updated
 
 
 @router.get(

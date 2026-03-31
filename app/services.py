@@ -782,6 +782,28 @@ def create_comment(comment: Dict[str, Any]) -> Dict[str, Any]:
     return _build_comment(comment_copy)
 
 
+def update_comment(comment_id: int, body: str) -> Optional[Dict[str, Any]]:
+    """
+    Actualiza el campo body de un comentario existente.
+
+    Args:
+        comment_id: ID del comentario a actualizar.
+        body: Nuevo contenido del comentario (ya sanitizado).
+
+    Returns:
+        Dict del comentario actualizado con fechas normalizadas,
+        o None si el comentario no existe.
+    """
+    data = load_data()
+    for comment in data.get("comments", []):
+        if comment.get("id") == comment_id:
+            comment["body"] = body
+            comment["updated_at"] = _now_utc_iso()
+            save_data(data)
+            return _build_comment(comment)
+    return None
+
+
 def delete_comment(comment_id: int) -> bool:
     """
     Elimina un comentario y sus votos asociados en cascada.
@@ -1031,6 +1053,70 @@ def update_post(post_id: int, updates: Dict[str, Any]) -> Optional[Dict[str, Any
             post["updated_at"] = _now_utc_iso()
             save_data(data)
             return get_post(post_id)
+    return None
+
+
+def lock_post(post_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Bloquea un post marcando locked=True, impidiendo nuevos comentarios.
+
+    Idempotente: llamar dos veces produce el mismo resultado.
+
+    Args:
+        post_id: ID del post a bloquear.
+
+    Returns:
+        Dict del post actualizado, o None si el post no existe.
+    """
+    data = load_data()
+    for post in data.get("posts", []):
+        if post.get("id") == post_id:
+            post["locked"] = True
+            save_data(data)
+            return deepcopy(post)
+    return None
+
+
+def sticky_post(post_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Fija un post en la parte superior de su board marcando sticky=True.
+
+    Idempotente: llamar dos veces produce el mismo resultado.
+
+    Args:
+        post_id: ID del post a fijar.
+
+    Returns:
+        Dict del post actualizado, o None si el post no existe.
+    """
+    data = load_data()
+    for post in data.get("posts", []):
+        if post.get("id") == post_id:
+            post["sticky"] = True
+            save_data(data)
+            return deepcopy(post)
+    return None
+
+
+def shadowban_user(user_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Aplica un shadowban a un usuario marcando shadowbanned=True.
+
+    El usuario shadowbaneado no ve ningún cambio, pero su contenido
+    queda oculto para el resto de usuarios. Idempotente.
+
+    Args:
+        user_id: ID del usuario a shadowbanear.
+
+    Returns:
+        Dict del usuario actualizado, o None si el usuario no existe.
+    """
+    data = load_data()
+    for user in data.get("users", []):
+        if user.get("id") == user_id:
+            user["shadowbanned"] = True
+            save_data(data)
+            return deepcopy(user)
     return None
 
 
