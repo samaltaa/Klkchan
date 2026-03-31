@@ -20,6 +20,7 @@ from app.routers import (
     comments,
     interactions,
     moderation,
+    models_docs,
     posts,
     reports,
     terms,
@@ -102,6 +103,7 @@ app.include_router(moderation.router)
 app.include_router(interactions.router)
 app.include_router(reports.router)
 app.include_router(terms.router)
+app.include_router(models_docs.router)
 
 
 @app.get("/health", tags=["System"])
