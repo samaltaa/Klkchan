@@ -1,172 +1,167 @@
-from fastapi import FastAPI, HTTPException
-from schemas import *
-import json
-from pathlib import Path
+from fastapi import FastAPI, HTTPException, Depends
+from sqlalchemy.orm import Session
+from datetime import date 
+from passlib.context import CryptContext
 
-"""
-I have created relative file paths because what works on my 
-machine might not work on yours, when creating docker images later
-this will be the best practice since it keeps the folder 
-structure consistent 
-"""
-
-BASE_DIR = Path(__file__).resolve().parent.parent #defining parent directory 
-
-DATA_FILE = Path(__file__).resolve().parent / "data" / "data.json" #pointing to the data file and directory 
-DATA_FILE.parent.mkdir(exist_ok=True)
+from database import get_db, init_db
+from models import Board as BoardModel, User as UserModel, Post as PostModel, Comment as CommentModel, Reply as ReplyModel
+from schemas import (
+    BoardCreate, Board,
+    UserCreate, UserUpdate, User,
+    PostCreate, PostUpdate, Post,
+    CommentCreate, Comment,
+    ReplyCreate, Reply
+)
 
 app = FastAPI()
-
-#function for getting the data from the json file 
-def load_data():
-    if DATA_FILE.exists():
-        with open(DATA_FILE, 'r') as f:
-            return json.load(f)
-        return {"boards":[], "users": [], "posts": [], "comments": [], "replies": []}
-
-#function for saving data in the json file
-def save_data(data):
-    with open(DATA_FILE, 'w') as f:
-        json.dump(data, f, indent=2)
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 @app.on_event("startup")
 async def startup():
-    # Initialize JSON file if it doesn't exist
-    if not DATA_FILE.exists():
-        initial_data = {"boards":[], "users": [], "posts": [], "comments": [], "replies": []}
-        save_data(initial_data)
+    init_db()
 
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
-"""
+#board endpoints 
+@app.post("/postboard", response_model=Board)
+async def post_board(payload: BoardCreate, db: Session = Depends(get_db)):
+    board = BoardModel(name=payload.name, description=payload.description)
+    db.add(board)
+    db.commit()
+    db.refresh(board)
+    return board
 
+@app.get("/getboards", response_model=list[Board])
+async def get_boards(db: Session = Depends(get_db)):
+    return db.query(BoardModel).all()
 
-FOR SAMIRA:
-
-# - Implementé servicios CRUD para Users y Posts.
-# - En create_post() actualizo automáticamente la lista de posts del usuario (relación bidireccional).
-# - En delete_post() limpio la relación en los usuarios.
-# - Todos los cambios persisten en data.json.
-# - Todos los endpoints de Users listos (CRUD).
-# - Implementé bcrypt para hashear contraseñas al crear usuario.
-# - También en UPDATE: si el password cambia, vuelve a guardarse hasheado.
-# - Los responses no exponen la contraseña (solo datos públicos)
-
-
-FOR MELVIN:
-Hey twin :~), make sure your endpoints are defined 
-below this line and above the green dashes below so we 
-all know who worked on what. I understand my coding style 
-is a bit rudimentary but that's because this is a prototype 
-I am keeping my code and yours divided by borders so that
-we can discuss integrating our code blocks over a google meet. So far I only have post 
-and get endpoints but thats because I had to start from scratch again after an oversight.
-
-Your tasks:
-[]create endpoints for creating, editing, deleting, and fetching users
-[]for user account creation use passlib.context and 
-import CryptContext to use bcrypt to hash passwords before they are stored
-[]create a biderectional relationship between users and the posts
-each post already has a "user_id" field
-
---Tata
-"""
-
-
-
-"""
-Tata's endpoints below
---------------------------------------------------------
-"""
-
-#endpoints related to boards
-@app.get("/")
-async def get_data():
-    data = load_data()
-
-    return data
-
-@app.post("/postboard")
-async def post_board(payload: BoardCreate):
-    data = load_data()
-
-    next_id = max([b["id"] for b in data["boards"]], default=0) + 1
-    new_board = {
-        "id": next_id,
-        "name": payload.name,
-        "description": payload.description,
-    }
-    data["boards"].append(new_board)
-
-    save_data(data)
-    return data
-
-@app.get("/getboards")
-async def get_boards():
-    data = load_data()
-
-    for board in data["boards"]:
-        board_posts = [p for p in data["posts"] if p["board_id"] == board["id"]]
-        board["posts"] = board_posts
-        
-    return {"boards": data["boards"]}
-
-#endpoints for posts  
-@app.get("/getposts")
-async def get_posts():
-    data = load_data()
-
-    for post in data["posts"]:
-        post_comments = [c for c in data["comments"] if c["post_id"] == post["id"]]
-        post["comments"] = post_comments
-
-    return {"posts": data["posts"]}
+#post endpoints
+@app.get("/getposts", response_model=list[Post])
+async def get_posts(db: Session = Depends(get_db)):
+    return db.query(PostModel).all()
 
 @app.post("/posts", response_model=Post)
-async def create_post(payload: PostCreate):
-    data = load_data()
-
-    next_id = max([p["id"] for p in data["posts"]], default=0) + 1
-
-    new_post = {
-        "id": next_id,
-        "title": payload.title,
-        "body": payload.body,
-        "board_id": 2, #logic will be added later
-        "created_at": str(date.today()),
-        "votes": 0,
-        "user_id": 1, #place holder
-        "comments":[]
-    }
-
-    data["posts"].append(new_post)
-
-    
-    save_data(data)
-    return new_post
-
-#endpoints for comments 
+async def create_post(payload: PostCreate, db: Session = Depends(get_db)):
+    # Verify that the referenced user and board actually exist
+    if not db.query(UserModel).filter(UserModel.id == payload.user_id).first():
+        raise HTTPException(status_code=404, detail="User not found")
+    if not db.query(BoardModel).filter(BoardModel.id == payload.board_id).first():
+        raise HTTPException(status_code=404, detail="Board not found")
+ 
+    post = PostModel(
+        title=payload.title,
+        body=payload.body,
+        board_id=payload.board_id,
+        user_id=payload.user_id,
+        created_at=date.today(),
+        votes=0,
+    )
+    db.add(post)
+    db.commit()
+    db.refresh(post)
+    return post
+ 
+ 
+@app.patch("/posts/{post_id}", response_model=Post)
+async def update_post(post_id: int, payload: PostUpdate, db: Session = Depends(get_db)):
+    post = db.query(PostModel).filter(PostModel.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+ 
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(post, field, value)
+ 
+    db.commit()
+    db.refresh(post)
+    return post
+ 
+ 
+@app.delete("/posts/{post_id}")
+async def delete_post(post_id: int, db: Session = Depends(get_db)):
+    post = db.query(PostModel).filter(PostModel.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    db.delete(post)
+    db.commit()
+    return {"detail": "Post deleted"}
+ 
+ 
+#comment endpoints
+ 
 @app.post("/comments", response_model=Comment)
-async def create_comment(payload: CommentCreate):
-    data = load_data()
+async def create_comment(payload: CommentCreate, db: Session = Depends(get_db)):
+    if not db.query(PostModel).filter(PostModel.id == payload.post_id).first():
+        raise HTTPException(status_code=404, detail="Post not found")
+ 
+    comment = CommentModel(
+        body=payload.body,
+        post_id=payload.post_id,
+        created_at=date.today(),
+        votes=0,
+        user_id=1,  # TODO: replace with authenticated user id
+    )
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+    return comment
+ 
+ 
 
-    next_comment_id = max([c["id"] for c in data["comments"]], default=0) + 1
-    new_comment = {
-            "id": next_comment_id,
-            "body": payload.body,
-            "post_id": 1, #placeholder
-            "created_at": str(date.today()),
-            "votes": 0,
-            "user_id": 1
-            }
-    data["comments"].append(new_comment)
-    save_data(data)
-
-    return new_comment
-
-"""
-TODO for Tata:
-[]create a bidirectional relationship between comments and replies
-"""
+@app.post("/users", response_model=User)
+async def create_user(payload: UserCreate, db: Session = Depends(get_db)):
+    if db.query(UserModel).filter(UserModel.email == payload.email).first():
+        raise HTTPException(status_code=400, detail="Email already registered")
+ 
+    hashed_pw = pwd_context.hash(payload.password)
+    user = UserModel(
+        username=payload.username,
+        email=payload.email,
+        password=hashed_pw,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+ 
+ #user endpoints
+@app.get("/users", response_model=list[User])
+async def get_users(db: Session = Depends(get_db)):
+    return db.query(UserModel).all()
+ 
+ 
+@app.get("/users/{user_id}", response_model=User)
+async def get_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+ 
+ 
+@app.patch("/users/{user_id}", response_model=User)
+async def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)):
+    user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+ 
+    updates = payload.model_dump(exclude_unset=True)
+    if "password" in updates:
+        updates["password"] = pwd_context.hash(updates["password"])
+ 
+    for field, value in updates.items():
+        setattr(user, field, value)
+ 
+    db.commit()
+    db.refresh(user)
+    return user
+ 
+ 
+@app.delete("/users/{user_id}")
+async def delete_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.delete(user)
+    db.commit()
+    return {"detail": "User deleted"}

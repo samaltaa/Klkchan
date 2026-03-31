@@ -1,28 +1,32 @@
-from fastapi import FastAPI, HTTPException, Body 
-from databases import Database 
-from sqlalchemy import * 
-#from models import [models here]
-#schemas import [schemas]
-from datetime import date 
-import os 
-#from helpers import [helper functions]
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from models import Base
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
-DATABASE_URL = ""
-database = Database(DATABASE_URL)
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-app = FastAPI()
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL environment variable is not set.")
 
-@app.on_event("startup")
-async def startup():
-    engine = create_engine(DATABASE_URL)
-    #metadata.create_all(engine) uncomment when metadata is imported from models
-    await database.connect()
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    pool_size=5,
+    max_overflow=10,
+)
 
-@app.on_event("shutdown")
-async def shutdown():
-    await database.disconnect()
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-@app.get("/health")
-async def health():
-    await database.execute("SELECT 1")
-    return {"status": "ok"}
+
+def init_db():
+    Base.metadata.create_all(bind=engine) #creates all tables defined in models
+
+def get_db():
+
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

@@ -66,6 +66,8 @@ class PostCreate(BaseModel):
     comments: List[CommentBase] = []  # Changed from CommentCreate to CommentBase
 
     
+
+    
 class PostUpdate(BaseModel):
     title: Optional[str] = None
     body: Optional[str] = None
