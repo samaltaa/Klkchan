@@ -1,6 +1,6 @@
-from sqlalchemy import String, Integer, Date, ForeignKey, MetaData
+from sqlalchemy import String, Integer, ForeignKey, MetaData
 from sqlalchemy.orm import Mapped, mapped_column, relationship, declarative_base
-from typing import List
+from typing import List, Optional
 from datetime import date
 
 metadata = MetaData()
@@ -14,7 +14,7 @@ class Board(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=False)
 
-    posts: Mapped[List["Post"]] = relationship(back_populates="board")  # was missing colon
+    posts: Mapped[List["Post"]] = relationship(back_populates="board")
 
 
 class User(Base):
@@ -34,16 +34,16 @@ class Post(Base):
     __tablename__ = "posts"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    title: Mapped[str] = mapped_column(String(100), nullable=True)
+    title: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     body: Mapped[str] = mapped_column(nullable=False)
     created_at: Mapped[date] = mapped_column(nullable=False)
     votes: Mapped[int] = mapped_column(Integer, default=0)
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    user: Mapped["User"] = relationship(back_populates="posts")
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    user: Mapped[Optional["User"]] = relationship(back_populates="posts")
 
     board_id: Mapped[int] = mapped_column(ForeignKey("boards.id"))
-    board: Mapped["Board"] = relationship(back_populates="posts")  # was missing colon
+    board: Mapped["Board"] = relationship(back_populates="posts")
 
     comments: Mapped[List["Comment"]] = relationship(back_populates="post")
 
@@ -56,8 +56,8 @@ class Comment(Base):
     created_at: Mapped[date] = mapped_column(nullable=False)
     votes: Mapped[int] = mapped_column(Integer, default=0)
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    user: Mapped["User"] = relationship(back_populates="comments")
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    user: Mapped[Optional["User"]] = relationship(back_populates="comments")
 
     post_id: Mapped[int] = mapped_column(ForeignKey("posts.id"))
     post: Mapped["Post"] = relationship(back_populates="comments")
@@ -73,9 +73,8 @@ class Reply(Base):
     created_at: Mapped[date] = mapped_column(nullable=False)
     votes: Mapped[int] = mapped_column(Integer, default=0)
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    user: Mapped["User"] = relationship(back_populates="replies")
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    user: Mapped[Optional["User"]] = relationship(back_populates="replies")
 
     comment_id: Mapped[int] = mapped_column(ForeignKey("comments.id"))
     comment: Mapped["Comment"] = relationship(back_populates="replies")
-

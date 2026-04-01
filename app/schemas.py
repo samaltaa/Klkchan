@@ -1,9 +1,9 @@
 from pydantic import BaseModel, EmailStr
 from datetime import date
-from typing import List, Optional 
+from typing import List, Optional
 
 
-# User Schemas
+# User schemas
 class UserCreate(BaseModel):
     username: str
     email: EmailStr
@@ -18,11 +18,9 @@ class User(BaseModel):
     id: int
     username: str
     email: EmailStr
-    posts: List[int] = []   # IDs de los posts que le pertenecen
 
     class Config:
         from_attributes = True
-
 
 
 # Board schemas
@@ -32,15 +30,12 @@ class BoardCreate(BaseModel):
 
 class Board(BoardCreate):
     id: int
-    
+
     class Config:
         from_attributes = True
 
-    
-    class Config:
-        from_attributes = True
 
-# Comment schemas - Define CommentBase first
+# Comment schemas
 class CommentBase(BaseModel):
     body: str
 
@@ -51,23 +46,21 @@ class Comment(CommentBase):
     id: int
     created_at: date
     votes: int
-    user_id: int
+    user_id: Optional[int] = None   # None = anonymous
     post_id: int
-    
+    replies: List["Reply"] = []
+
     class Config:
         from_attributes = True
+
 
 # Post schemas
 class PostCreate(BaseModel):
     title: str
     body: str
     board_id: int
-    user_id: int 
-    comments: List[CommentBase] = []  # Changed from CommentCreate to CommentBase
+    user_id: Optional[int] = None   # None = anonymous
 
-    
-
-    
 class PostUpdate(BaseModel):
     title: Optional[str] = None
     body: Optional[str] = None
@@ -80,8 +73,11 @@ class Post(BaseModel):
     board_id: int
     created_at: date
     votes: int
-    user_id: int
+    user_id: Optional[int] = None
     comments: List[Comment] = []
+
+    class Config:
+        from_attributes = True
 
 
 # Reply schemas
@@ -89,11 +85,17 @@ class ReplyCreate(BaseModel):
     body: str
     comment_id: int
 
-class Reply(ReplyCreate):
+class Reply(BaseModel):
     id: int
+    body: str
+    comment_id: int
     created_at: date
     votes: int
-    user_id: int
-    
+    user_id: Optional[int] = None   # None = anonymous
+
     class Config:
         from_attributes = True
+
+
+# Required for forward reference in Comment.replies
+Comment.model_rebuild()
