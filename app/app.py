@@ -12,10 +12,20 @@ from schemas import (
     CommentCreate, Comment,
     ReplyCreate, Reply,
 )
+from fastapi.middleware.cors import CORSMiddleware
+
+
 
 app = FastAPI()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.on_event("startup")
 async def startup():

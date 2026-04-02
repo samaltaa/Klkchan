@@ -14,6 +14,7 @@ export default function BoardPage() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ title: '', body: '' })
   const [submitting, setSubmitting] = useState(false)
+  const [expandedReplies, setExpandedReplies] = useState<Set<number>>(new Set())
 
   async function loadPosts(boardObj: Board) {
     const fresh = await getPostsByBoard(boardObj.id)
@@ -52,41 +53,47 @@ export default function BoardPage() {
     }
   }
 
-  if (loading) return <div className="min-h-screen bg-[#eef2ff] p-4 text-xs text-gray-500">Loading...</div>
-  if (!board) return <div className="min-h-screen bg-[#eef2ff] p-4 text-xs text-red-500">Board not found.</div>
+  function toggleReplies(commentId: number) {
+    setExpandedReplies(prev => {
+      const next = new Set(prev)
+      next.has(commentId) ? next.delete(commentId) : next.add(commentId)
+      return next
+    })
+  }
+
+  if (loading) return <div className="min-h-screen bg-[#eef2ff] flex items-center justify-center text-sm text-gray-500">Loading...</div>
+  if (!board) return <div className="min-h-screen bg-[#eef2ff] flex items-center justify-center text-sm text-red-500">Board not found.</div>
 
   return (
     <main className="min-h-screen bg-[#eef2ff]">
-      {/* Header */}
       <header className="bg-[#af0a0f] text-white text-center py-3 border-b-4 border-[#800000]">
-        <Link href="/" className="text-red-200 text-xs hover:underline block mb-0.5">← home</Link>
-        <h1 className="text-xl font-bold">/{board.name}/ — {board.description}</h1>
+        <Link href="/" className="text-red-200 text-sm hover:underline block mb-0.5">← home</Link>
+        <h1 className="text-2xl font-bold">/{board.name}/ — {board.description}</h1>
       </header>
 
-      {/* New Thread button */}
-      <div className="max-w-4xl mx-auto px-3 mt-4">
+      <div className="max-w-3xl mx-auto px-4 mt-6">
         <button
           onClick={() => setShowForm(!showForm)}
-          className="text-xs bg-[#d6daf0] border border-[#b7c5d9] px-3 py-1 hover:bg-[#c8cde8] text-[#34345c] font-bold"
+          className="text-sm bg-[#d6daf0] border border-[#b7c5d9] px-4 py-1.5 hover:bg-[#c8cde8] text-[#34345c] font-bold"
         >
           {showForm ? 'Cancel' : '[ Start a New Thread ]'}
         </button>
 
         {showForm && (
-          <form onSubmit={handleSubmit} className="mt-2 bg-[#d6daf0] border border-[#b7c5d9] p-3 text-xs space-y-2">
-            <div className="flex gap-2 items-center">
-              <label className="w-16 text-right text-gray-600">Subject</label>
+          <form onSubmit={handleSubmit} className="mt-3 bg-[#d6daf0] border border-[#b7c5d9] p-4 text-sm space-y-3">
+            <div className="flex gap-3 items-center">
+              <label className="w-20 text-right text-gray-600">Subject</label>
               <input
-                className="flex-1 border border-[#b7c5d9] bg-white px-2 py-0.5 text-xs"
+                className="flex-1 border border-[#b7c5d9] bg-white px-2 py-1 text-sm"
                 value={form.title}
                 onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                 placeholder="Optional"
               />
             </div>
-            <div className="flex gap-2 items-start">
-              <label className="w-16 text-right text-gray-600 mt-0.5">Comment</label>
+            <div className="flex gap-3 items-start">
+              <label className="w-20 text-right text-gray-600 mt-1">Comment</label>
               <textarea
-                className="flex-1 border border-[#b7c5d9] bg-white px-2 py-0.5 text-xs min-h-[80px]"
+                className="flex-1 border border-[#b7c5d9] bg-white px-2 py-1 text-sm min-h-[100px]"
                 value={form.body}
                 onChange={e => setForm(f => ({ ...f, body: e.target.value }))}
                 required
@@ -96,7 +103,7 @@ export default function BoardPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="bg-[#af0a0f] text-white px-4 py-1 text-xs hover:bg-[#800000] disabled:opacity-50"
+                className="bg-[#af0a0f] text-white px-5 py-1.5 text-sm hover:bg-[#800000] disabled:opacity-50"
               >
                 {submitting ? 'Posting...' : 'Post'}
               </button>
@@ -105,44 +112,78 @@ export default function BoardPage() {
         )}
       </div>
 
-      <hr className="border-[#b7c5d9] my-3 max-w-4xl mx-auto" />
+      <hr className="border-[#b7c5d9] my-4 max-w-3xl mx-auto" />
 
-      {/* Posts */}
-      <div className="max-w-4xl mx-auto px-3 space-y-6 pb-10">
+      <div className="max-w-3xl mx-auto px-4 space-y-8 pb-12">
         {posts.length === 0 && (
-          <p className="text-xs text-gray-500">No posts yet. Be the first to post.</p>
+          <p className="text-sm text-gray-500">No posts yet. Be the first to post.</p>
         )}
 
         {posts.map((post) => (
-          <div key={post.id}>
-            {/* OP post */}
-            <div className="bg-[#f0e0d6] border border-[#d9bfb7] p-2 inline-block max-w-full">
-              <div className="text-xs text-gray-600 mb-1 flex gap-3 flex-wrap">
+          <div key={post.id} className="space-y-2">
+            <div className="bg-[#f0e0d6] border border-[#d9bfb7] p-3 w-full">
+              <div className="text-sm text-gray-600 mb-2 flex gap-4 flex-wrap items-center">
                 <span className="text-[#117743] font-bold">Anonymous</span>
                 <span>{new Date(post.created_at).toLocaleString()}</span>
                 <span className="text-[#34345c]">No.{post.id}</span>
-                {post.title && (
-                  <span className="text-[#0f0c5d] font-bold">{post.title}</span>
-                )}
+                {post.title && <span className="text-[#0f0c5d] font-bold">{post.title}</span>}
+                <Link
+                  href={`/${board.name}/thread/${post.id}`}
+                  className="ml-auto text-[#34345c] hover:text-[#af0a0f] underline font-bold text-sm"
+                >
+                  Reply to Post
+                </Link>
               </div>
-              <p className="text-xs whitespace-pre-wrap break-words max-w-prose">{post.body}</p>
+              <p className="text-sm whitespace-pre-wrap break-words">{post.body}</p>
             </div>
 
-            {/* First 2 comments */}
             {post.comments.length > 0 && (
-              <div className="ml-8 mt-1 space-y-1">
+              <div className="ml-8 space-y-2">
                 {post.comments.slice(0, 2).map((comment) => (
-                  <div key={comment.id} className="bg-[#d6daf0] border border-[#b7c5d9] p-2 inline-block max-w-full">
-                    <div className="text-xs text-gray-600 mb-1 flex gap-3">
-                      <span className="text-[#117743] font-bold">Anonymous</span>
-                      <span>{new Date(comment.created_at).toLocaleString()}</span>
-                      <span className="text-[#34345c]">No.{comment.id}</span>
+                  <div key={comment.id} className="space-y-1">
+                    <div className="bg-[#d6daf0] border border-[#b7c5d9] p-3 w-full">
+                      <div className="text-sm text-gray-600 mb-2 flex gap-4 flex-wrap items-center">
+                        <span className="text-[#117743] font-bold">Anonymous</span>
+                        <span>{new Date(comment.created_at).toLocaleString()}</span>
+                        <span className="text-[#34345c]">No.{comment.id}</span>
+                        {comment.replies.length > 0 && (
+                          <button
+                            onClick={() => toggleReplies(comment.id)}
+                            className="text-[#34345c] hover:text-[#af0a0f] underline font-bold"
+                          >
+                            {comment.replies.length} {comment.replies.length === 1 ? 'reply' : 'replies'}
+                            {expandedReplies.has(comment.id) ? ' ▲' : ' ▼'}
+                          </button>
+                        )}
+                        <Link
+                          href={`/${board.name}/thread/${post.id}`}
+                          className="ml-auto text-[#34345c] hover:text-[#af0a0f] underline font-bold text-sm"
+                        >
+                          Reply to Comment
+                        </Link>
+                      </div>
+                      <p className="text-sm whitespace-pre-wrap break-words">{comment.body}</p>
                     </div>
-                    <p className="text-xs whitespace-pre-wrap break-words max-w-prose">{comment.body}</p>
+
+                    {expandedReplies.has(comment.id) && comment.replies.length > 0 && (
+                      <div className="ml-8 space-y-1">
+                        {comment.replies.map((reply) => (
+                          <div key={reply.id} className="bg-[#eef2ff] border border-[#b7c5d9] p-3 w-full">
+                            <div className="text-sm text-gray-600 mb-1 flex gap-4 flex-wrap">
+                              <span className="text-[#117743] font-bold">Anonymous</span>
+                              <span>{new Date(reply.created_at).toLocaleString()}</span>
+                              <span className="text-[#34345c]">No.{reply.id}</span>
+                              <span className="text-gray-400">&gt;&gt;{comment.id}</span>
+                            </div>
+                            <p className="text-sm whitespace-pre-wrap break-words">{reply.body}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
 
-                <div className="text-xs mt-1">
+                <div className="text-sm mt-1">
                   {post.comments.length > 2 && (
                     <span className="text-gray-500 mr-2">
                       {post.comments.length - 2} post{post.comments.length - 2 !== 1 ? 's' : ''} omitted.
@@ -152,19 +193,19 @@ export default function BoardPage() {
                     href={`/${board.name}/thread/${post.id}`}
                     className="text-[#34345c] hover:text-[#af0a0f] underline font-bold"
                   >
-                    {post.comments.length > 2 ? 'See All Replies' : 'Reply'}
+                    {post.comments.length > 2 ? 'See All Replies' : 'View Thread'}
                   </Link>
                 </div>
               </div>
             )}
 
             {post.comments.length === 0 && (
-              <div className="ml-8 mt-1 text-xs">
+              <div className="ml-8 text-sm">
                 <Link
                   href={`/${board.name}/thread/${post.id}`}
                   className="text-[#34345c] hover:text-[#af0a0f] underline font-bold"
                 >
-                  [ Reply ]
+                  [ View Thread ]
                 </Link>
               </div>
             )}
