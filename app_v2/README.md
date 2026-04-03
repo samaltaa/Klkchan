@@ -60,7 +60,7 @@ npm install @hcaptcha/react-hcaptcha
 10000000-ffff-ffff-ffff-000000000001
 ```
 
-Cuando vayan a producción, Melvin te pasa la site key real.
+Cuando vayan a producción, equipo backend  te pasa la site key real.
 
 **Componente CaptchaGate**
 ```tsx
