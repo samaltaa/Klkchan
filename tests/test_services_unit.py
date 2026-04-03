@@ -4,7 +4,7 @@ Prueba funciones individuales de services.py directamente.
 El fixture temp_data_path (autouse) redirige DATA_PATH al archivo de test.
 """
 import pytest
-from app.services import (
+from app_v1.services import (
     _next_id,
     load_data,
     get_user,

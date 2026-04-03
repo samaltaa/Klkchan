@@ -12,8 +12,8 @@ Nota de seguridad (post-fix C-2):
 import pytest
 from fastapi.testclient import TestClient
 
-from app.utils.security import create_password_reset_token
-from app.services import get_user_by_email
+from app_v1.utils.security import create_password_reset_token
+from app_v1.services import get_user_by_email
 
 
 # ---------------------------------------------------------------------------

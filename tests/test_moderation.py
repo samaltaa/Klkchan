@@ -7,8 +7,8 @@ from stored user data at login time).
 import pytest
 from fastapi.testclient import TestClient
 
-from app.app import app
-import app.services as services
+from app_v1.app import app
+import app_v1.services as services
 
 
 @pytest.fixture(scope="module")

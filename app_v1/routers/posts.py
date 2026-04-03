@@ -22,8 +22,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
-from app.deps import get_current_user
-from app.schemas import (
+from app_v1.deps import get_current_user
+from app_v1.schemas import (
     CommentListResponse,
     ErrorResponse,
     Post,
@@ -31,7 +31,7 @@ from app.schemas import (
     PostListResponse,
     PostUpdate,
 )
-from app.services import (
+from app_v1.services import (
     build_comment_tree,
     create_post,
     delete_post,
@@ -42,8 +42,8 @@ from app.services import (
     get_posts_sorted,
     update_post,
 )
-from app.utils.content import enforce_clean_text
-from app.utils.helpers import sanitize_html
+from app_v1.utils.content import enforce_clean_text
+from app_v1.utils.helpers import sanitize_html
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 

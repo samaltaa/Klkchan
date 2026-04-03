@@ -16,10 +16,10 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
-from app.deps import get_current_user, require_role
-from app.schemas import ErrorResponse, RoleUpdate, RoleUpdateResponse, User, UserListResponse
-from app.services import delete_user, get_post, get_user, get_users, load_data, lock_post, shadowban_user, sticky_post, update_user_roles
-from app.utils.roles import Role
+from app_v1.deps import get_current_user, require_role
+from app_v1.schemas import ErrorResponse, RoleUpdate, RoleUpdateResponse, User, UserListResponse
+from app_v1.services import delete_user, get_post, get_user, get_users, load_data, lock_post, shadowban_user, sticky_post, update_user_roles
+from app_v1.utils.roles import Role
 
 router = APIRouter(
     prefix="/admin",

@@ -3,7 +3,7 @@
 import pytest
 from fastapi import HTTPException
 
-from app.utils.content import enforce_clean_text
+from app_v1.utils.content import enforce_clean_text
 
 
 def test_enforce_clean_text_with_clean_content():

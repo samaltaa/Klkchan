@@ -14,8 +14,8 @@ Cubre funciones/ramas no ejercidas:
 """
 import pytest
 
-import app.services as services
-from app.utils.security import hash_password
+import app_v1.services as services
+from app_v1.utils.security import hash_password
 
 
 # ---------------------------------------------------------------------------

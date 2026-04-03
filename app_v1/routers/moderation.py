@@ -22,9 +22,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from app.deps import require_role
-from app.utils.roles import Role
-from app.services import (
+from app_v1.deps import require_role
+from app_v1.utils.roles import Role
+from app_v1.services import (
     get_user,
     delete_user,
     ban_user,

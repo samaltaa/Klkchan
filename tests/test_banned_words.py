@@ -8,8 +8,8 @@ Uses real words from the LDNOOBW dictionaries:
 import pytest
 from fastapi.testclient import TestClient
 
-from app.app import app
-from app.utils.banned_words import has_banned_words
+from app_v1.app import app
+from app_v1.utils.banned_words import has_banned_words
 
 
 @pytest.fixture(scope="module")

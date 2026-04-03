@@ -25,10 +25,10 @@ import pytest
 from fastapi import Depends
 from fastapi.testclient import TestClient
 
-from app.app import app
-from app.utils.security import create_access_token, hash_password
-from app.utils.token_blacklist import revoke
-import app.services as services
+from app_v1.app import app
+from app_v1.utils.security import create_access_token, hash_password
+from app_v1.utils.token_blacklist import revoke
+import app_v1.services as services
 
 
 @pytest.fixture(scope="module")
@@ -75,7 +75,7 @@ class TestGetCurrentPayloadErrors:
         token = resp["access_token"]
 
         # Revocar el token manualmente
-        from app.utils.security import decode_access_token
+        from app_v1.utils.security import decode_access_token
         payload = decode_access_token(token)
         jti = payload["jti"]
         exp = payload["exp"]
@@ -132,7 +132,7 @@ class TestGetCurrentUserErrors:
         old_token = resp["access_token"]
 
         # Avanzar el iat_cutoff más allá del iat del token emitido
-        from app.utils.security import decode_access_token
+        from app_v1.utils.security import decode_access_token
         payload = decode_access_token(old_token)
         old_iat = payload["iat"]
         services.update_user_iat_cutoff(user_id, old_iat + 1)
@@ -188,7 +188,7 @@ class TestRequireScopesDirect:
         """require_scopes lanza 403 cuando el usuario no tiene todos los scopes."""
         from fastapi import FastAPI
         from fastapi.testclient import TestClient as TC
-        from app.deps import get_current_user, require_scopes
+        from app_v1.deps import get_current_user, require_scopes
 
         # Crear una mini-app con un endpoint que requiere scopes
         mini = FastAPI()
@@ -211,7 +211,7 @@ class TestRequireScopesDirect:
         """require_scopes permite el acceso cuando el usuario tiene los scopes requeridos."""
         from fastapi import FastAPI
         from fastapi.testclient import TestClient as TC
-        from app.deps import require_scopes
+        from app_v1.deps import require_scopes
 
         mini = FastAPI()
 

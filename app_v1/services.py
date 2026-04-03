@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from app.utils.helpers import normalize_email
+from app_v1.utils.helpers import normalize_email
 
 # ---------------------------------------------------------------------------
 # Storage helpers

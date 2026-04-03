@@ -13,7 +13,7 @@ import re
 
 import pytest
 
-from app.utils.helpers import (
+from app_v1.utils.helpers import (
     generate_slug,
     normalize_email,
     normalize_text,

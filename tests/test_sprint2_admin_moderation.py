@@ -16,7 +16,7 @@ Cada endpoint tiene:
 import pytest
 from fastapi.testclient import TestClient
 
-from app.app import app
+from app_v1.app import app
 
 
 @pytest.fixture(scope="module")

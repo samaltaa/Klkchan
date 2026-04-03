@@ -17,9 +17,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 from pydantic import BaseModel, Field, field_validator
 
-from app.deps import get_current_user
-from app.schemas import ErrorResponse, VoteSummary
-from app.services import apply_vote, get_vote_summary
+from app_v1.deps import get_current_user
+from app_v1.schemas import ErrorResponse, VoteSummary
+from app_v1.services import apply_vote, get_vote_summary
 
 router = APIRouter(prefix="/interactions", tags=["Interactions"])
 

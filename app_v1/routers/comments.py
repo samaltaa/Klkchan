@@ -19,11 +19,11 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
-from app.deps import get_current_user
-from app.schemas import Comment, CommentCreate, CommentUpdate, CommentListResponse, ErrorResponse
-from app.services import build_comment_tree, create_comment, delete_comment, get_comment, get_comments, get_comments_for_post, get_post, update_comment
-from app.utils.content import enforce_clean_text
-from app.utils.helpers import sanitize_html
+from app_v1.deps import get_current_user
+from app_v1.schemas import Comment, CommentCreate, CommentUpdate, CommentListResponse, ErrorResponse
+from app_v1.services import build_comment_tree, create_comment, delete_comment, get_comment, get_comments, get_comments_for_post, get_post, update_comment
+from app_v1.utils.content import enforce_clean_text
+from app_v1.utils.helpers import sanitize_html
 
 router = APIRouter(prefix="/comments", tags=["Comments"])
 

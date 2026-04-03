@@ -5,7 +5,7 @@ Tests para rate limiting global con SlowAPI.
 import pytest
 from fastapi.testclient import TestClient
 
-from app.utils.limiter import limiter
+from app_v1.utils.limiter import limiter
 
 
 def test_limiter_has_default_limits():

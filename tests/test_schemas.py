@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.schemas import UserCreate, PostCreate, CommentCreate
+from app_v1.schemas import UserCreate, PostCreate, CommentCreate
 
 
 def test_user_create_valid():

@@ -16,10 +16,10 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, Security, status
 
-from app.deps import get_current_payload, get_current_user, oauth2_scheme
-from app.utils.token_blacklist import revoke as revoke_token
-from app.schemas import ErrorResponse, UserListResponse, UserResponse, UserUpdate
-from app.services import (
+from app_v1.deps import get_current_payload, get_current_user, oauth2_scheme
+from app_v1.utils.token_blacklist import revoke as revoke_token
+from app_v1.schemas import ErrorResponse, UserListResponse, UserResponse, UserUpdate
+from app_v1.services import (
     calculate_user_karma,
     delete_user as service_delete_user,
     get_posts,
@@ -27,7 +27,7 @@ from app.services import (
     get_users,
     update_user as service_update_user,
 )
-from app.utils.content import enforce_clean_text
+from app_v1.utils.content import enforce_clean_text
 
 router = APIRouter(prefix="/users", tags=["Users"])
 

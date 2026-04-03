@@ -13,9 +13,9 @@ Endpoints:
 from fastapi import APIRouter, Depends, Request, status
 from fastapi.exceptions import HTTPException
 
-from app.deps import get_current_user
-from app.schemas.schemas import TermsOut, TermsStatusOut
-from app.services import (
+from app_v1.deps import get_current_user
+from app_v1.schemas.schemas import TermsOut, TermsStatusOut
+from app_v1.services import (
     create_acceptance,
     get_active_terms,
     get_user_acceptance,

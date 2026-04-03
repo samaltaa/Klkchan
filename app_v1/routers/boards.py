@@ -17,11 +17,11 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
-from app.deps import get_current_user, require_role
-from app.schemas import Board, BoardCreate, BoardListResponse, BoardUpdate, ErrorResponse
-from app.services import create_board, delete_board, get_board, list_boards, update_board
-from app.utils.content import enforce_clean_text
-from app.utils.roles import Role
+from app_v1.deps import get_current_user, require_role
+from app_v1.schemas import Board, BoardCreate, BoardListResponse, BoardUpdate, ErrorResponse
+from app_v1.services import create_board, delete_board, get_board, list_boards, update_board
+from app_v1.utils.content import enforce_clean_text
+from app_v1.utils.roles import Role
 
 router = APIRouter(prefix="/boards", tags=["Boards"])
 

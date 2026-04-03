@@ -3,8 +3,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app.app import app
-from app.utils.token_blacklist import _store, _lock
+from app_v1.app import app
+from app_v1.utils.token_blacklist import _store, _lock
 
 
 @pytest.fixture(scope="module")
@@ -257,7 +257,7 @@ class TestBlacklistInternals:
 
     def test_revoke_and_is_revoked(self):
         import time
-        from app.utils.token_blacklist import revoke, is_revoked
+        from app_v1.utils.token_blacklist import revoke, is_revoked
 
         jti = "test-jti-1"
         assert not is_revoked(jti)
@@ -268,7 +268,7 @@ class TestBlacklistInternals:
 
     def test_expired_entry_not_revoked(self):
         import time
-        from app.utils.token_blacklist import revoke, is_revoked
+        from app_v1.utils.token_blacklist import revoke, is_revoked
 
         jti = "test-jti-expired"
         # Revoke with an already-past expiry

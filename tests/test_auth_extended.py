@@ -4,8 +4,8 @@ import pytest
 from fastapi.testclient import TestClient
 from jose import jwt
 
-from app.app import app
-from app.utils.security import SECRET_KEY, ALGORITHM
+from app_v1.app import app
+from app_v1.utils.security import SECRET_KEY, ALGORITHM
 
 
 @pytest.fixture(scope="module")

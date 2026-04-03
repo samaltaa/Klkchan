@@ -7,7 +7,7 @@ LDNOOBW (List of Dirty, Naughty, Obscene, and Otherwise Bad Words)
 en español e inglés con normalización de leet-speak.
 
 Uso típico en un endpoint:
-    from app.utils.content import enforce_clean_text
+    from app_v1.utils.content import enforce_clean_text
 
     enforce_clean_text(payload.title, payload.body)  # lanza 400 si hay banned words
 """
@@ -15,7 +15,7 @@ from typing import Optional
 
 from fastapi import HTTPException, status
 
-from app.utils.banned_words import has_banned_words
+from app_v1.utils.banned_words import has_banned_words
 
 
 def enforce_clean_text(*texts: Optional[str], lang_hint: str = "es") -> None:

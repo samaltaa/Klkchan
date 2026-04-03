@@ -9,7 +9,7 @@ con su contenido y conservando el texto de tags benignos.
 import pytest
 from fastapi.testclient import TestClient
 
-from app.utils.helpers import sanitize_html
+from app_v1.utils.helpers import sanitize_html
 
 
 # ---------------------------------------------------------------------------

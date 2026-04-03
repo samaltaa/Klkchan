@@ -21,9 +21,9 @@ from typing import List, Optional
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app.utils.limiter import limiter
+from app_v1.utils.limiter import limiter
 
-from app.schemas import (
+from app_v1.schemas import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
@@ -38,7 +38,7 @@ from app.schemas import (
     UserResponse,
     VerifyEmailRequest,
 )
-from app.utils.security import (
+from app_v1.utils.security import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     check_password_policy,
     create_access_token,
@@ -49,7 +49,7 @@ from app.utils.security import (
     hash_password,
     verify_password,
 )
-from app.services import (
+from app_v1.services import (
     create_user as service_create_user,
     get_user_by_email,
     get_user_by_id,
@@ -57,9 +57,9 @@ from app.services import (
     update_user_iat_cutoff,
     update_user_password,
 )
-from app.utils.helpers import normalize_email
-from app.deps import get_current_payload, get_current_user
-from app.utils.token_blacklist import is_revoked, revoke as revoke_token
+from app_v1.utils.helpers import normalize_email
+from app_v1.deps import get_current_payload, get_current_user
+from app_v1.utils.token_blacklist import is_revoked, revoke as revoke_token
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 

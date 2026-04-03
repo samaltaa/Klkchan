@@ -5,9 +5,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel, Field
 
-from app.deps import get_current_user, require_role
-from app.services import moderation_queue_list, moderation_report_create
-from app.utils.roles import Role
+from app_v1.deps import get_current_user, require_role
+from app_v1.services import moderation_queue_list, moderation_report_create
+from app_v1.utils.roles import Role
 
 router = APIRouter(prefix="/moderation", tags=["Moderation"])
 

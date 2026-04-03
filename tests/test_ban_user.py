@@ -13,7 +13,7 @@ TODO: Agregar endpoint de unban (PATCH /admin/users/{id}/unban) en
 import pytest
 from fastapi.testclient import TestClient
 
-import app.services as services
+import app_v1.services as services
 
 
 # ---------------------------------------------------------------------------

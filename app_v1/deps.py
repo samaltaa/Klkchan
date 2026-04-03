@@ -28,10 +28,10 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError  # ✅ captura explícita de errores JWT
 
-from app.utils.security import decode_access_token
-from app.utils.token_blacklist import is_revoked
-from app.services import get_user_by_id, get_active_terms, get_user_acceptance
-from app.utils.roles import Role
+from app_v1.utils.security import decode_access_token
+from app_v1.utils.token_blacklist import is_revoked
+from app_v1.services import get_user_by_id, get_active_terms, get_user_acceptance
+from app_v1.utils.roles import Role
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 

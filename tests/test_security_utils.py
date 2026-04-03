@@ -3,7 +3,7 @@
 import pytest
 from jose import JWTError
 
-from app.utils.security import (
+from app_v1.utils.security import (
     ISSUER,
     hash_password,
     verify_password,

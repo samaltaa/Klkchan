@@ -14,9 +14,9 @@ Cubre las ramas no ejercidas:
 import pytest
 from fastapi.testclient import TestClient
 
-from app.app import app
-import app.services as services
-from app.utils.security import hash_password
+from app_v1.app import app
+import app_v1.services as services
+from app_v1.utils.security import hash_password
 
 
 @pytest.fixture(scope="module")

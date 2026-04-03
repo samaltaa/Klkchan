@@ -37,7 +37,7 @@ def test_unknown_email_gets_user_role_only(monkeypatch):
     """Email desconocido → solo rol 'user'."""
     monkeypatch.setenv("ADMIN_EMAILS", "admin@x.com")
     monkeypatch.setenv("MOD_EMAILS", "mod@x.com")
-    from app.routers.auth import _assign_initial_roles
+    from app_v1.routers.auth import _assign_initial_roles
     assert _assign_initial_roles("nobody@x.com") == ["user"]
 
 
@@ -45,7 +45,7 @@ def test_admin_email_gets_admin_role(monkeypatch):
     """Email en ADMIN_EMAILS → ['user', 'admin']."""
     monkeypatch.setenv("ADMIN_EMAILS", "boss@x.com,cto@x.com")
     monkeypatch.setenv("MOD_EMAILS", "")
-    from app.routers.auth import _assign_initial_roles
+    from app_v1.routers.auth import _assign_initial_roles
     roles = _assign_initial_roles("boss@x.com")
     assert "admin" in roles
     assert "user" in roles
@@ -56,7 +56,7 @@ def test_mod_email_gets_mod_role(monkeypatch):
     """Email en MOD_EMAILS → ['user', 'mod'], sin admin."""
     monkeypatch.setenv("ADMIN_EMAILS", "")
     monkeypatch.setenv("MOD_EMAILS", "cop@x.com")
-    from app.routers.auth import _assign_initial_roles
+    from app_v1.routers.auth import _assign_initial_roles
     roles = _assign_initial_roles("cop@x.com")
     assert "mod" in roles
     assert "user" in roles
@@ -67,7 +67,7 @@ def test_admin_email_not_also_mod(monkeypatch):
     """Si el email está en ADMIN_EMAILS no debe recibir también 'mod'."""
     monkeypatch.setenv("ADMIN_EMAILS", "dual@x.com")
     monkeypatch.setenv("MOD_EMAILS", "dual@x.com")
-    from app.routers.auth import _assign_initial_roles
+    from app_v1.routers.auth import _assign_initial_roles
     roles = _assign_initial_roles("dual@x.com")
     assert "admin" in roles
     assert "mod" not in roles  # admin tiene prioridad (elif)
@@ -77,7 +77,7 @@ def test_email_matching_is_case_insensitive(monkeypatch):
     """Los emails en env vars se comparan sin distinción de mayúsculas."""
     monkeypatch.setenv("ADMIN_EMAILS", "Admin@X.COM")
     monkeypatch.setenv("MOD_EMAILS", "")
-    from app.routers.auth import _assign_initial_roles
+    from app_v1.routers.auth import _assign_initial_roles
     roles = _assign_initial_roles("admin@x.com")
     assert "admin" in roles
 

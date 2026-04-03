@@ -3,8 +3,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app.app import app
-from app.services import _next_id
+from app_v1.app import app
+from app_v1.services import _next_id
 
 
 @pytest.fixture(scope="module")

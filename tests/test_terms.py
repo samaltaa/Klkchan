@@ -18,9 +18,9 @@ import pytest
 from fastapi import Depends
 from fastapi.testclient import TestClient
 
-import app.services as services
-from app.app import app
-from app.deps import get_current_user, require_terms_accepted
+import app_v1.services as services
+from app_v1.app import app
+from app_v1.deps import get_current_user, require_terms_accepted
 
 # ---------------------------------------------------------------------------
 # Helpers de fixture
@@ -231,7 +231,7 @@ def test_terms_status_without_jwt_returns_401(client, temp_data_path):
 def test_require_terms_accepted_raises_403_when_not_accepted(temp_data_path):
     """require_terms_accepted lanza 403 cuando hay T&C activos y el usuario no los aceptó."""
     from fastapi import HTTPException
-    from app.deps import require_terms_accepted
+    from app_v1.deps import require_terms_accepted
 
     _seed_active_terms("v1.0")
 
@@ -249,7 +249,7 @@ def test_require_terms_accepted_raises_403_when_not_accepted(temp_data_path):
 
 def test_require_terms_accepted_passes_when_accepted(temp_data_path):
     """require_terms_accepted no lanza excepción cuando el usuario aceptó los T&C vigentes."""
-    from app.deps import require_terms_accepted
+    from app_v1.deps import require_terms_accepted
 
     terms = _seed_active_terms("v1.0")
     _seed_acceptance(user_id=3, terms_id=terms["id"])
@@ -263,7 +263,7 @@ def test_require_terms_accepted_passes_when_accepted(temp_data_path):
 
 def test_require_terms_accepted_passes_when_no_active_terms(temp_data_path):
     """require_terms_accepted no bloquea cuando no hay T&C activos."""
-    from app.deps import require_terms_accepted
+    from app_v1.deps import require_terms_accepted
 
     # Sin T&C en el sistema
     alice = {"id": 3, "username": "alice", "roles": ["user"]}
