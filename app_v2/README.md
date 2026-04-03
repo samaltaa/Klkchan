@@ -158,14 +158,14 @@ export const anonFetch = async (path: string, options: RequestInit = {}) => {
 |---|---|---|---|
 | GET | `/posts` | — | Listar posts (filtrar con `?board_id=1`) |
 | GET | `/posts/{id}` | — | Obtener un post |
-| POST | `/posts` | 🍪 guest token | Crear un post |
+| POST | `/posts` |  guest token | Crear un post |
 
 **Comments**
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
 | GET | `/comments/{post_id}` | — | Obtener comentarios de un post |
-| POST | `/comments` | 🍪 guest token | Crear un comentario o reply |
+| POST | `/comments` | guest token | Crear un comentario o reply |
 
 ---
 
