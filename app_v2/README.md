@@ -1,6 +1,6 @@
 # KLKCHAN — Frontend Integration Guide v2
 
-> **Para:** Samantha (Altagracia) — Frontend Developer
+> **Para:** — Frontend Developer
 > **Stack frontend:** Next.js + TypeScript
 > **Hosting frontend:** Vercel
 > **Backend:** FastAPI — uvicorn
