@@ -321,7 +321,7 @@ http://localhost:5173
 
 Cuando hagas deploy en Vercel, pásale tu dominio a Melvin.
 
-⚠️ `credentials: "include"` es obligatorio en todos los requests POST.
+ `credentials: "include"` es obligatorio en todos los requests POST.
 Sin esto el browser no envía la cookie y el backend responde 401.
 
 ---
