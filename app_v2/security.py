@@ -11,9 +11,15 @@ HCAPTCHA_SECRET = os.getenv("HCAPTCHA_SECRET_KEY", "0x00000000000000000000000000
 HCAPTCHA_VERIFY_URL = "https://hcaptcha.com/siteverify"
 
 async def verify_hcaptcha(token: str) -> bool:
+    if os.getenv("ENVIRONMENT", "development") == "development":
+        return True
     async with httpx.AsyncClient() as client:
         try:
-            r = await client.post(HCAPTCHA_VERIFY_URL, data={"secret": HCAPTCHA_SECRET, "response": token}, timeout=5.0)
+            r = await client.post(
+                HCAPTCHA_VERIFY_URL,
+                data={"secret": HCAPTCHA_SECRET, "response": token},
+                timeout=5.0,
+            )
             return r.json().get("success", False)
         except Exception:
             return False
