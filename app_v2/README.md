@@ -326,4 +326,4 @@ Sin esto el browser no envía la cookie y el backend responde 401.
 
 ---
 
-Cualquier duda, le preguntas a Melvin 🤝
+
