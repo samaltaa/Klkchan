@@ -33,7 +33,7 @@ from app_v1.utils.token_blacklist import is_revoked
 from app_v1.services import get_user_by_id, get_active_terms, get_user_acceptance
 from app_v1.utils.roles import Role
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/v1/auth/login")
 
 
 def _unauthorized(detail: str) -> HTTPException:
@@ -137,7 +137,7 @@ async def get_current_user(
         "id": user["id"],
         "username": user["username"],
         "email": user["email"],
-        "posts": user.get("posts", []),
+        "posts": user.get("posts") or [],
         "roles": payload.get("roles", ["user"]),
         "scopes": payload.get("scopes", []),
     }

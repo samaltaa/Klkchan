@@ -2537,6 +2537,20 @@
             "password": "$2b$12$1qrhGcZdM0xeJKr4A1gLHe5xheZiOA520K6rMImJk5B2P.F5VxZTa",
             "posts": [],
             "id": 325
+        },
+        {
+            "username": "melvinqa",
+            "email": "melvinqa@test.com",
+            "display_name": "string",
+            "bio": "string",
+            "password": "$2b$12$A1KxsLPKQs8kfr.FXrNW3uBBzP2oIz9iD1bc63JX2XhCr5Lg18Ct.",
+            "posts": [],
+            "roles": [
+                "user"
+            ],
+            "id": 326,
+            "is_active": true,
+            "created_at": "2026-06-03T01:37:27.484221+00:00"
         }
     ],
     "posts": [

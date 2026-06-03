@@ -272,6 +272,9 @@ def refresh_tokens(request: Request, payload: RefreshTokenRequest) -> TokenPair:
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
 
+    if user.get("is_banned"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cuenta suspendida")
+
     roles = user.get("roles", ["user"])
     access_token = create_access_token(
         data={"sub": str(user_id_int), "roles": roles},
@@ -354,6 +357,9 @@ def change_password(
         exp = token_payload.get("exp", 0)
         if jti:
             revoke_token(jti, float(exp))
+
+        cutoff_ts = int(datetime.now(timezone.utc).timestamp()) - 1
+        update_user_iat_cutoff(db_user["id"], cutoff_ts)
 
         return Response(status_code=204)
     except HTTPException:
@@ -496,7 +502,7 @@ def reset_password(body: ResetPasswordRequest) -> ResetPasswordResponse:
     update_user_password(user_id, new_hash)
 
     # Invalidar todas las sesiones activas del usuario
-    cutoff_ts = int(datetime.now(timezone.utc).timestamp())
+    cutoff_ts = int(datetime.now(timezone.utc).timestamp()) - 1
     update_user_iat_cutoff(user_id, cutoff_ts)
 
     # Consumir el token (uso único)

@@ -100,6 +100,40 @@ class TestChangePasswordRevokesToken:
         r = client.get("/users/me", headers={"Authorization": f"Bearer {new_token}"})
         assert r.status_code == 200
 
+    def test_change_password_invalidates_other_sessions(self, client, temp_data_path):
+        """iat_cutoff invalida tokens de sesiones paralelas, no solo el JTI activo.
+
+        Fix: change-password ahora llama a update_user_iat_cutoff, igual que
+        reset-password. Un token emitido antes del cambio desde OTRO dispositivo
+        (JTI diferente, no en la blacklist) queda rechazado por el cutoff.
+        """
+        _register(client, "multidev", "multidev@example.com", "OldPass1")
+
+        # Dispositivo 1: hace login y obtiene su access token
+        token_device1 = client.post(
+            "/auth/login", data={"username": "multidev@example.com", "password": "OldPass1"}
+        ).json()["access_token"]
+
+        r = client.get("/users/me", headers={"Authorization": f"Bearer {token_device1}"})
+        assert r.status_code == 200
+
+        # Dispositivo 2: hace login de forma independiente (JTI distinto)
+        token_device2 = client.post(
+            "/auth/login", data={"username": "multidev@example.com", "password": "OldPass1"}
+        ).json()["access_token"]
+
+        # Dispositivo 2 cambia la contraseña → establece iat_cutoff = ahora
+        r = client.patch(
+            "/auth/change-password",
+            json={"old_password": "OldPass1", "new_password": "NewPass1"},
+            headers={"Authorization": f"Bearer {token_device2}"},
+        )
+        assert r.status_code == 204
+
+        # Dispositivo 1: su JTI NO está en la blacklist, pero iat <= cutoff → 401
+        r = client.get("/users/me", headers={"Authorization": f"Bearer {token_device1}"})
+        assert r.status_code == 401
+
 
 class TestDeleteMeRevokesToken:
     """FIX 2: DELETE /users/me debe revocar el access token activo."""
@@ -248,6 +282,35 @@ class TestDeletedUserTokenInvalid:
 
         # El token del usuario baneado debe retornar 403 (suspendido, no eliminado)
         r = client.get("/users/me", headers={"Authorization": f"Bearer {victim_token}"})
+        assert r.status_code == 403
+
+    def test_banned_user_refresh_token_returns_403(self, client, temp_data_path):
+        """POST /auth/refresh con el refresh token de un usuario baneado → 403.
+
+        Fix: el endpoint /auth/refresh ahora comprueba is_banned antes de emitir
+        el nuevo par de tokens. Un usuario baneado no puede renovar su sesión.
+        """
+        _register(client, "victim3", "victim3@test.com", "Testpass1")
+        tokens = client.post(
+            "/auth/login", data={"username": "victim3@test.com", "password": "Testpass1"}
+        ).json()
+        refresh = tokens["refresh_token"]
+
+        victim_id = client.get(
+            "/users/me", headers={"Authorization": f"Bearer {tokens['access_token']}"}
+        ).json()["id"]
+
+        # Ban the user
+        admin_token = _login(client, "admin@example.com")
+        r = client.post(
+            "/moderation/actions",
+            json={"target_type": "user", "target_id": victim_id, "action": "ban_user"},
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+        assert r.status_code == 200
+
+        # El refresh token del usuario baneado debe retornar 403, no un nuevo par
+        r = client.post("/auth/refresh", json={"refresh_token": refresh})
         assert r.status_code == 403
 
 
