@@ -1,7 +1,5 @@
 # tests/conftest.py
 import json
-import shutil
-from pathlib import Path
 from datetime import datetime, timezone
 
 import pytest
@@ -21,25 +19,18 @@ def _disable_rate_limits():
     limiter.enabled = True
 
 
-# 1) Limpia/crea tests/_tmp por ejecución de pytest
-@pytest.fixture(scope="session", autouse=True)
-def _ensure_tmp_dir_session():
-    tmp_dir = Path(__file__).parent / "_tmp"
-    if tmp_dir.exists():
-        shutil.rmtree(tmp_dir)
-    tmp_dir.mkdir(parents=True, exist_ok=True)
-    print(f"[tests] Carpeta temporal creada: {tmp_dir}")
-
-
-# 2) Redirige DATA_PATH y resetea estructura base por test
+# Redirige DATA_PATH a un directorio exclusivo por test (tmp_path de pytest).
+# Cada test obtiene su propio test_data.json y test_data.tmp, eliminando la
+# condicion de carrera de Windows donde el worker thread de anyio (client
+# module-scoped) mantenia un handle sobre test_data.tmp mientras el setUp
+# del siguiente test intentaba escribir sobre el mismo path.
 @pytest.fixture(scope="function", autouse=True)
-def temp_data_path(monkeypatch):
-    tmp_dir = Path(__file__).parent / "_tmp"
-    data_file = tmp_dir / "test_data.json"
+def temp_data_path(monkeypatch, tmp_path):
+    data_file = tmp_path / "test_data.json"
 
     monkeypatch.setattr(services, "DATA_PATH", data_file, raising=False)
 
-    # estructura base vacía
+    # estructura base vacia
     base = {
         "users": [],
         "posts": [],
@@ -49,18 +40,18 @@ def temp_data_path(monkeypatch):
     }
     data_file.write_text(json.dumps(base, ensure_ascii=False, indent=4), encoding="utf-8")
 
-    # Forzar a services a “ver” ese archivo y directorio (crea parent si hiciera falta)
+    # Forzar a services a "ver" ese archivo y directorio (crea parent si hiciera falta)
     services.load_data()
 
     # ---- seed por test ----
     _seed_minimal_fixture()
 
     yield data_file
-    # no borramos para que puedas inspeccionarlo post-test
+    # pytest retiene los ultimos 3 runs en tmp_path para inspeccion post-test
 
 
 def _seed_minimal_fixture():
-    """Inserta datos de ejemplo suficientes para probar endpoints cómodamente."""
+    """Inserta datos de ejemplo suficientes para probar endpoints comodamente."""
     now = datetime.now(timezone.utc).isoformat()
 
     users = [
@@ -132,7 +123,7 @@ def _seed_minimal_fixture():
     print("[tests] Seed cargado: 3 usuarios, 2 boards, 2 posts")
 
 
-# 3) Cliente FastAPI
+# Cliente FastAPI
 @pytest.fixture(scope="module")
 def client():
     with TestClient(app) as c:

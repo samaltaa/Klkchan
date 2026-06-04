@@ -68,6 +68,9 @@ def _attach_posts(user: dict) -> dict:
         y campos karma, post_karma, comment_karma calculados.
     """
     clean = _sanitize_user(user)
+    # Coerce null posts to [] before recalculating (data.json corruption guard)
+    if not isinstance(clean.get("posts"), list):
+        clean["posts"] = []
     posts = get_posts()
     clean["posts"] = [post["id"] for post in posts if post.get("user_id") == clean.get("id")]
     clean.update(calculate_user_karma(clean["id"]))

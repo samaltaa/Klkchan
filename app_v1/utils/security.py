@@ -74,11 +74,35 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
+def validate_password_bytes(password: str) -> Tuple[bool, Optional[str]]:
+    """
+    Valida que la contraseña no exceda el límite de 72 bytes de bcrypt.
+
+    bcrypt trunca silenciosamente entradas por encima de 72 bytes, haciendo
+    que dos contraseñas distintas con idénticos primeros 72 bytes produzcan
+    el mismo hash. Esta función rechaza explícitamente esas contraseñas.
+
+    La validación es en bytes UTF-8, no en caracteres: un emoji ocupa 4 bytes,
+    una ñ ocupa 2 bytes, caracteres ASCII ocupan 1 byte cada uno.
+
+    Args:
+        password: Contraseña en texto plano a validar.
+
+    Returns:
+        Tupla (ok, msg_error): ok=True si está dentro del límite,
+        ok=False con msg_error si lo supera.
+    """
+    if len(password.encode("utf-8")) > 72:
+        return False, "Password exceeds 72 bytes; bcrypt cannot hash it safely"
+    return True, None
+
+
 def check_password_policy(pwd: str) -> Tuple[bool, Optional[str]]:
     """
     Valida que la contraseña cumpla la política mínima de seguridad.
 
     Política:
+      - Máximo 72 bytes UTF-8 (límite de bcrypt)
       - Mínimo 8 caracteres
       - Al menos 1 letra mayúscula
       - Al menos 1 letra minúscula
@@ -92,6 +116,9 @@ def check_password_policy(pwd: str) -> Tuple[bool, Optional[str]]:
         ok=False con msg_error describiendo el primer requisito
         no cumplido.
     """
+    ok, msg = validate_password_bytes(pwd)
+    if not ok:
+        return False, msg
     if len(pwd) < 8:
         return False, "La contraseña debe tener al menos 8 caracteres."
     if not re.search(r"[A-Z]", pwd):

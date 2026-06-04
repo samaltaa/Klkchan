@@ -54,6 +54,7 @@ from app_v1.services import (
     get_user_by_email,
     get_user_by_id,
     get_users,
+    increment_session_version,
     update_user_iat_cutoff,
     update_user_password,
 )
@@ -156,7 +157,7 @@ def register(request: Request, user: UserCreate) -> UserResponse:
         id=created["id"],
         username=created["username"],
         email=created["email"],
-        posts=created.get("posts", []),
+        posts=created.get("posts") or [],
     )
 
 
@@ -208,7 +209,7 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()) ->
 
     roles = user.get("roles", ["user"])
     access_token = create_access_token(
-        data={"sub": str(user["id"]), "roles": roles},
+        data={"sub": str(user["id"]), "roles": roles, "sv": user.get("session_version", 0)},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
     refresh_token, _refresh_jti, _refresh_exp = create_refresh_token(user_id=user["id"])
@@ -277,7 +278,7 @@ def refresh_tokens(request: Request, payload: RefreshTokenRequest) -> TokenPair:
 
     roles = user.get("roles", ["user"])
     access_token = create_access_token(
-        data={"sub": str(user_id_int), "roles": roles},
+        data={"sub": str(user_id_int), "roles": roles, "sv": user.get("session_version", 0)},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
     new_refresh_token, _refresh_jti, _refresh_exp = create_refresh_token(user_id=user_id_int)
@@ -358,8 +359,8 @@ def change_password(
         if jti:
             revoke_token(jti, float(exp))
 
-        cutoff_ts = int(datetime.now(timezone.utc).timestamp()) - 1
-        update_user_iat_cutoff(db_user["id"], cutoff_ts)
+        # Invalidate all other active sessions (other devices / parallel tokens)
+        increment_session_version(db_user["id"])
 
         return Response(status_code=204)
     except HTTPException:
@@ -502,48 +503,63 @@ def reset_password(body: ResetPasswordRequest) -> ResetPasswordResponse:
     update_user_password(user_id, new_hash)
 
     # Invalidar todas las sesiones activas del usuario
-    cutoff_ts = int(datetime.now(timezone.utc).timestamp()) - 1
-    update_user_iat_cutoff(user_id, cutoff_ts)
+    increment_session_version(user_id)
 
-    # Consumir el token (uso único)
+    # Consumir el token de reset (uso unico)
     if jti:
         revoke_token(jti, float(payload.get("exp", 0)))
 
     return ResetPasswordResponse()
 
 
-@router.post("/verify-email", status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/verify-email",
+    deprecated=True,
+    description="STUB — not implemented. Tracking: MODEL-32. Returns 501. Frontend must not integrate against this.",
+)
 def verify_email(payload: VerifyEmailRequest):
     """
-    Stub: verifica el email de un usuario mediante un token de confirmación.
+    STUB — no implementado. Retorna 501 Not Implemented.
 
-    PENDIENTE — No implementado. Siempre retorna 202 Accepted.
     La implementación real está planificada en MODEL-32 (integración de email).
+    El endpoint existe para que el router no devuelva 404, pero no ejecuta
+    ninguna lógica de verificación. Marcado como deprecated en la documentación.
 
     Args:
-        payload: Objeto con el token de verificación de email.
+        payload: Objeto con el token de verificación de email (validado por Pydantic).
 
-    Returns:
-        Dict con accepted=True y detail indicando que es un stub.
+    Raises:
+        HTTPException 501: Siempre. El endpoint no está implementado.
     """
     _ = payload
-    return {"accepted": True, "detail": "Email verification stub", "next": "MODEL-32"}
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="Not implemented — pending MODEL-32. Do not build UI against this endpoint yet.",
+    )
 
 
-@router.post("/resend-verification", status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/resend-verification",
+    deprecated=True,
+    description="STUB — not implemented. Tracking: MODEL-32. Returns 501. Frontend must not integrate against this.",
+)
 def resend_verification(payload: ResendVerificationRequest):
     """
-    Stub: reenvía el email de verificación de cuenta.
+    STUB — no implementado. Retorna 501 Not Implemented.
 
-    PENDIENTE — No implementado. Siempre retorna 202 Accepted.
     La implementación real está planificada en MODEL-32 (integración de email).
+    El endpoint existe para que el router no devuelva 404, pero no ejecuta
+    ninguna lógica de reenvío. Marcado como deprecated en la documentación.
 
     Args:
-        payload: Objeto con el email al que reenviar la verificación.
+        payload: Objeto con el email al que reenviar la verificación (validado por Pydantic).
 
-    Returns:
-        Dict con accepted=True y detail indicando que es un stub.
+    Raises:
+        HTTPException 501: Siempre. El endpoint no está implementado.
     """
     _ = payload
-    return {"accepted": True, "detail": "Resend verification stub", "next": "MODEL-32"}
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="Not implemented — pending MODEL-32. Do not build UI against this endpoint yet.",
+    )
 

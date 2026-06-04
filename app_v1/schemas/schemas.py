@@ -114,12 +114,12 @@ class UserCreate(UserBase):
     Añade la contraseña con validación de política mínima.
 
     Attributes:
-        password: Contraseña en texto plano, 8-128 chars.
+        password: Contraseña en texto plano, mín 8 chars, máx 72 bytes UTF-8 (límite bcrypt).
                   Debe contener al menos una letra mayúscula.
                   Se hashea con bcrypt antes de persistir.
     """
 
-    password: str = Field(..., min_length=8, max_length=128)
+    password: str = Field(..., min_length=8)
 
     @field_validator("password")
     @classmethod
@@ -127,6 +127,15 @@ class UserCreate(UserBase):
         """Valida que la contraseña tenga al menos una letra mayúscula."""
         if not any(c.isupper() for c in v):
             raise ValueError("Password must contain at least one uppercase letter")
+        return v
+
+    @field_validator("password")
+    @classmethod
+    def _password_byte_limit(cls, v: str) -> str:
+        from app_v1.utils.security import validate_password_bytes
+        ok, msg = validate_password_bytes(v)
+        if not ok:
+            raise ValueError(msg)
         return v
 
 
@@ -183,6 +192,13 @@ class User(OrmBase, UserBase):
     karma: int = 0
     post_karma: int = 0
     comment_karma: int = 0
+
+    @field_validator("posts", mode="before")
+    @classmethod
+    def _coerce_posts_null(cls, v):
+        # default_factory fires only for absent keys; null in data.json must be
+        # coerced explicitly here before the List[int] type check runs.
+        return v if v is not None else []
 
 
 class UserResponse(User):
@@ -736,6 +752,15 @@ class ChangePasswordRequest(BaseModel):
     old_password: str = Field(..., min_length=6)
     new_password: str = Field(..., min_length=8)
 
+    @field_validator("new_password")
+    @classmethod
+    def _new_password_byte_limit(cls, v: str) -> str:
+        from app_v1.utils.security import validate_password_bytes
+        ok, msg = validate_password_bytes(v)
+        if not ok:
+            raise ValueError(msg)
+        return v
+
 
 class LogoutRequest(BaseModel):
     """
@@ -791,11 +816,20 @@ class ResetPasswordRequest(BaseModel):
 
     Attributes:
         token: Token de reset recibido por email (o en forgot-password response en dev).
-        new_password: Nueva contraseña, 12-128 chars (más restrictivo que register).
+        new_password: Nueva contraseña, mín 12 chars, máx 72 bytes UTF-8 (límite bcrypt).
     """
 
     token: str = Field(..., description="Reset token delivered over email")
-    new_password: str = Field(..., min_length=12, max_length=128)
+    new_password: str = Field(..., min_length=12)
+
+    @field_validator("new_password")
+    @classmethod
+    def _new_password_byte_limit(cls, v: str) -> str:
+        from app_v1.utils.security import validate_password_bytes
+        ok, msg = validate_password_bytes(v)
+        if not ok:
+            raise ValueError(msg)
+        return v
 
 
 class ResetPasswordResponse(BaseModel):

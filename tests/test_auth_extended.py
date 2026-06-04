@@ -130,3 +130,23 @@ class TestMultipleSessions:
         assert r1.status_code == 200
         assert r2.status_code == 200
         assert r1.json()["username"] == r2.json()["username"] == "alice"
+
+
+class TestUnimplementedStubs:
+    def test_verify_email_returns_501(self, client, temp_data_path):
+        """POST /auth/verify-email con payload valido debe retornar 501 Not Implemented."""
+        r = client.post(
+            "/auth/verify-email",
+            json={"token": "a" * 16},
+        )
+        assert r.status_code == 501
+        assert "MODEL-32" in r.json()["detail"]
+
+    def test_resend_verification_returns_501(self, client, temp_data_path):
+        """POST /auth/resend-verification con payload valido debe retornar 501 Not Implemented."""
+        r = client.post(
+            "/auth/resend-verification",
+            json={"email": "alice@example.com"},
+        )
+        assert r.status_code == 501
+        assert "MODEL-32" in r.json()["detail"]

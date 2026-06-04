@@ -7,6 +7,7 @@ from app_v1.utils.security import (
     ISSUER,
     hash_password,
     verify_password,
+    validate_password_bytes,
     create_access_token,
     create_refresh_token,
     decode_access_token,
@@ -73,3 +74,38 @@ def test_token_contains_correct_issuer():
     token = create_access_token({"sub": "123"})
     payload = decode_access_token(token)
     assert payload["iss"] == ISSUER
+
+
+# ---------------------------------------------------------------------------
+# validate_password_bytes
+# ---------------------------------------------------------------------------
+
+def test_validate_password_bytes_at_limit_passes():
+    """Password de exactamente 72 bytes ASCII está dentro del límite de bcrypt."""
+    ok, msg = validate_password_bytes("A" * 72)
+    assert ok is True
+    assert msg is None
+
+
+def test_validate_password_bytes_exceeds_limit_fails():
+    """Password de 73 bytes ASCII supera el límite de bcrypt."""
+    ok, msg = validate_password_bytes("A" * 73)
+    assert ok is False
+    assert msg is not None
+    assert "72 bytes" in msg
+
+
+def test_validate_password_bytes_multibyte_unicode_fails():
+    """Password con emoji (4 bytes UTF-8 cada uno) que supera 72 bytes falla."""
+    # 🔑 = 4 bytes; 19 emojis = 76 bytes > 72
+    ok, msg = validate_password_bytes("🔑" * 19)
+    assert ok is False
+    assert msg is not None
+    assert "72 bytes" in msg
+
+
+def test_validate_password_bytes_short_unicode_passes():
+    """Password con unicode (ñ = 2 bytes) que no supera 72 bytes pasa."""
+    ok, msg = validate_password_bytes("Contraseña1")
+    assert ok is True
+    assert msg is None

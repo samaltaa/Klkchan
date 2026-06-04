@@ -148,3 +148,25 @@ def test_reset_password_invalidates_active_sessions(client: TestClient):
 
     r2 = client.get("/users/me", headers=auth)
     assert r2.status_code == 401
+
+
+def test_reset_password_invalidates_token_issued_same_second(client: TestClient, monkeypatch):
+    """Token emitido en el mismo segundo que el reset queda invalidado (sin depender de delay).
+
+    Fuerza login y reset dentro del mismo segundo entero pineando _now_ts a un valor
+    fijo. Verifica que la proteccion por session_version no dependa de la granularidad
+    de timestamps JWT (1 segundo), a diferencia del mecanismo iat_cutoff anterior.
+    """
+    import time
+    from app_v1.utils import security as sec_mod
+
+    fixed_ts = int(time.time())
+    monkeypatch.setattr(sec_mod, "_now_ts", lambda: fixed_ts)
+
+    old_token = _login(client, "alice@example.com")
+    reset_token = _get_reset_token_for("alice@example.com")
+    r = _reset(client, reset_token, "NuevaPass789!!")
+    assert r.status_code == 200
+
+    r2 = client.get("/users/me", headers={"Authorization": f"Bearer {old_token}"})
+    assert r2.status_code == 401

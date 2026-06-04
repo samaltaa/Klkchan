@@ -354,8 +354,9 @@ def update_user_iat_cutoff(user_id: int, cutoff_ts: int) -> bool:
     Establece el campo iat_cutoff para invalidar sesiones activas.
 
     Cualquier access token cuyo campo 'iat' sea menor o igual a cutoff_ts
-    será rechazado por get_current_user() en deps.py. Se llama
-    automáticamente tras un reset de contraseña exitoso.
+    será rechazado por get_current_user() en deps.py. Se usa como mecanismo
+    de invalidación manual de emergencia (no en el flujo normal de cambio
+    de contraseña, que usa increment_session_version).
 
     Args:
         user_id: ID del usuario afectado.
@@ -373,6 +374,33 @@ def update_user_iat_cutoff(user_id: int, cutoff_ts: int) -> bool:
             save_data(data)
             return True
     return False
+
+
+def increment_session_version(user_id: int) -> Optional[int]:
+    """
+    Incrementa session_version del usuario para invalidar todas sus sesiones activas.
+
+    Cada access token incluye el valor de session_version en el momento del
+    login (claim 'sv'). Al incrementar este campo, todos los tokens existentes
+    (sv anterior) son rechazados por get_current_user en deps.py, sin importar
+    la granularidad de segundos del iat. Se llama tras cambio o reset de
+    contrasena.
+
+    Args:
+        user_id: ID del usuario cuyas sesiones se invalidan.
+
+    Returns:
+        Nuevo valor de session_version si el usuario existe, None si no existe.
+    """
+    data = load_data()
+    for user in data["users"]:
+        if user.get("id") == user_id:
+            new_version = user.get("session_version", 0) + 1
+            user["session_version"] = new_version
+            user["updated_at"] = _now_utc_iso()
+            save_data(data)
+            return new_version
+    return None
 
 
 def delete_user(user_id: int) -> bool:

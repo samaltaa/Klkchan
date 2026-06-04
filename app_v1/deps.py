@@ -127,10 +127,19 @@ async def get_current_user(
             detail="Tu cuenta ha sido suspendida",
         )
 
-    # Invalidar tokens emitidos antes de un reset de contraseña
+    # Verificar session_version: invalida sesiones anteriores a un reset de contrasena.
+    # Cada token incluye el claim 'sv' emitido en el momento del login; si el usuario
+    # cambio/reseteo su contrasena desde entonces, session_version fue incrementado y
+    # sv != user["session_version"] → rechazo, sin depender de granularidad de segundos.
+    user_sv = user.get("session_version", 0)
+    token_sv = payload.get("sv", 0)
+    if token_sv != user_sv:
+        raise _unauthorized("Sesion invalidada. Inicia sesion nuevamente.")
+
+    # Mecanismo secundario: iat_cutoff para invalidacion manual de emergencia.
     iat_cutoff = user.get("iat_cutoff")
     if iat_cutoff and payload.get("iat", 0) <= iat_cutoff:
-        raise _unauthorized("Sesión invalidada. Inicia sesión nuevamente.")
+        raise _unauthorized("Sesion invalidada. Inicia sesion nuevamente.")
 
     # roles y scopes vienen del JWT; default ya lo pone create_access_token
     return {
