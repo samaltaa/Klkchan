@@ -1,17 +1,26 @@
 """
-main.py — Punto de entrada raíz de KLKCHAN.
+main.py — Punto de entrada raiz de KLKCHAN.
 
 Monta las versiones de la API como sub-aplicaciones:
-  /v1  → API actual (usuarios registrados, JWT, sistema completo)
-  /v2  → API futura (anónimos, captcha) — en construcción
+  /v1  -> API actual (usuarios registrados, JWT, sistema completo)
+  /v2  -> API futura (anonimos, captcha) -- en construccion
 
 Uso local:
     uvicorn main:root --reload --port 8000
 
-Documentación interactiva (desarrollo):
-    /v1/docs  → Swagger UI de v1
-    /v2/docs  → Swagger UI de v2
+Documentacion interactiva (desarrollo):
+    /v1/docs  -> Swagger UI de v1
+    /v2/docs  -> Swagger UI de v2
 """
+# load_dotenv MUST run before any app_v1/app_v2 import.
+# app_v1.utils.security reads SECRET_KEY at module level; if the .env is not
+# loaded first, uvicorn aborts with "ValueError: SECRET_KEY ... is required".
+# Using an absolute path relative to this file makes startup independent of
+# the working directory from which uvicorn is invoked.
+from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv(dotenv_path=Path(__file__).parent / ".env")
+
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,22 +38,20 @@ root = FastAPI(
     openapi_url=None,
 )
 
-# CORS en la app raíz (aplica a ambas versiones)
-if _ENVIRONMENT == "development":
-    _CORS_ORIGINS = [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://localhost:8080",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:8080",
-    ]
-else:
-    _CORS_ORIGINS = [
-        o.strip()
-        for o in os.getenv("ALLOWED_ORIGINS", "").split(",")
-        if o.strip()
-    ]
+# CORS on root covers the /health endpoint.
+# Sub-apps (/v1, /v2) carry their own CORSMiddleware — Starlette mount()
+# isolates middleware stacks, so this root config does not reach /v1/* or /v2/*.
+_CORS_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:8080",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8080",
+]
+_FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN")   # production Vercel domain
+if _FRONTEND_ORIGIN:
+    _CORS_ORIGINS.append(_FRONTEND_ORIGIN)
 
 root.add_middleware(
     CORSMiddleware,

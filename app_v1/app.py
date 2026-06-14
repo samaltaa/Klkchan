@@ -5,6 +5,7 @@ from pathlib import Path
 import logging
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -62,11 +63,40 @@ app = FastAPI(
 )
 
 # ---------------------------------------------------------------------------
+# CORS origins: dev servers always allowed; add production domain via env var.
+# Never use allow_origins=["*"] with allow_credentials=True — browsers reject it.
+# ---------------------------------------------------------------------------
+_CORS_ORIGINS = [
+    "http://localhost:3000",   # Next.js dev
+    "http://localhost:5173",   # Vite dev
+    "http://localhost:8080",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8080",
+]
+_FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN")   # production Vercel domain
+if _FRONTEND_ORIGIN:
+    _CORS_ORIGINS.append(_FRONTEND_ORIGIN)
+
+# ---------------------------------------------------------------------------
 # Rate limiting (SlowAPI)
 # ---------------------------------------------------------------------------
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
+
+# CORSMiddleware MUST be on the sub-app, not only on root.
+# Starlette mount() isolates each sub-app's middleware stack — root-level
+# add_middleware does NOT propagate to mounted apps. Adding after SlowAPI
+# makes CORS the outermost middleware: OPTIONS preflight is handled here
+# before reaching the rate limiter or any router.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Routers
 app.include_router(auth.router)
