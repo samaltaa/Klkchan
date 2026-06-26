@@ -13,9 +13,11 @@ export default function ThreadPage() {
   const [post, setPost] = useState<Post | null>(null)
   const [loading, setLoading] = useState(true)
   const [commentBody, setCommentBody] = useState('')
+  const [commentImage, setCommentImage] = useState<File | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [replyingTo, setReplyingTo] = useState<number | null>(null)
   const [replyBody, setReplyBody] = useState('')
+  const [replyImage, setReplyImage] = useState<File | null>(null)
 
   async function loadPost(boardObj: Board) {
     const posts = await getPostsByBoard(boardObj.id)
@@ -44,8 +46,9 @@ export default function ThreadPage() {
     if (!commentBody.trim() || !post || !board) return
     setSubmitting(true)
     try {
-      await createComment({ body: commentBody, post_id: post.id })
+      await createComment({ body: commentBody, post_id: post.id, image: commentImage })
       setCommentBody('')
+      setCommentImage(null)
       await loadPost(board)
     } finally {
       setSubmitting(false)
@@ -57,8 +60,9 @@ export default function ThreadPage() {
     if (!replyBody.trim() || !board) return
     setSubmitting(true)
     try {
-      await createReply({ body: replyBody, comment_id: commentId })
+      await createReply({ body: replyBody, comment_id: commentId, image: replyImage })
       setReplyBody('')
+      setReplyImage(null)
       setReplyingTo(null)
       await loadPost(board)
     } finally {
@@ -87,6 +91,13 @@ export default function ThreadPage() {
             <span className="text-[#34345c]">No.{post.id}</span>
             {post.title && <span className="text-[#0f0c5d] font-bold">{post.title}</span>}
           </div>
+          {post.image_url && (
+            <img
+              src={post.image_url}
+              alt="post image"
+              className="max-h-64 mb-2 border border-[#d9bfb7]"
+            />
+          )}
           <p className="text-sm whitespace-pre-wrap break-words">{post.body}</p>
         </div>
 
@@ -103,6 +114,25 @@ export default function ThreadPage() {
               required
             />
           </div>
+          <div className="flex gap-3 items-center">
+            <label className="w-20 text-right text-gray-600">Image</label>
+            <input
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+              className="text-sm text-gray-600"
+              onChange={e => setCommentImage(e.target.files?.[0] ?? null)}
+            />
+          </div>
+          {commentImage && (
+            <div className="flex gap-3 items-center">
+              <div className="w-20" />
+              <img
+                src={URL.createObjectURL(commentImage)}
+                alt="preview"
+                className="max-h-32 border border-[#b7c5d9]"
+              />
+            </div>
+          )}
           <div className="flex justify-end">
             <button
               type="submit"
@@ -134,6 +164,13 @@ export default function ThreadPage() {
                   {replyingTo === comment.id ? 'Cancel Reply' : 'Reply to Comment'}
                 </button>
               </div>
+              {comment.image_url && (
+                <img
+                  src={comment.image_url}
+                  alt="comment image"
+                  className="max-h-48 mb-2 border border-[#b7c5d9]"
+                />
+              )}
               <p className="text-sm whitespace-pre-wrap break-words">{comment.body}</p>
             </div>
 
@@ -151,10 +188,26 @@ export default function ThreadPage() {
                   required
                   autoFocus
                 />
+                <div className="flex gap-3 items-center">
+                  <label className="text-gray-600">Image</label>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                    className="text-sm text-gray-600"
+                    onChange={e => setReplyImage(e.target.files?.[0] ?? null)}
+                  />
+                </div>
+                {replyImage && (
+                  <img
+                    src={URL.createObjectURL(replyImage)}
+                    alt="preview"
+                    className="max-h-32 border border-[#b7c5d9]"
+                  />
+                )}
                 <div className="flex gap-2 justify-end">
                   <button
                     type="button"
-                    onClick={() => setReplyingTo(null)}
+                    onClick={() => { setReplyingTo(null); setReplyImage(null) }}
                     className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1 border border-gray-300"
                   >
                     Cancel
@@ -180,6 +233,13 @@ export default function ThreadPage() {
                       <span className="text-[#34345c]">No.{reply.id}</span>
                       <span className="text-gray-400">&gt;&gt;{comment.id}</span>
                     </div>
+                    {reply.image_url && (
+                      <img
+                        src={reply.image_url}
+                        alt="reply image"
+                        className="max-h-48 mb-2 border border-[#b7c5d9]"
+                      />
+                    )}
                     <p className="text-sm whitespace-pre-wrap break-words">{reply.body}</p>
                   </div>
                 ))}

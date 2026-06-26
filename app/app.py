@@ -1,14 +1,16 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Form, File, UploadFile
 from sqlalchemy.orm import Session
 from datetime import date
 from passlib.context import CryptContext
+from typing import Optional
 
 from database import get_db, init_db
+from image_utils import validate_and_encode_image
 from models import Board as BoardModel, User as UserModel, Post as PostModel, Comment as CommentModel, Reply as ReplyModel
 from schemas import (
     BoardCreate, Board,
     UserCreate, UserUpdate, User,
-    PostCreate, PostUpdate, Post,
+    PostUpdate, Post,
     CommentCreate, Comment,
     ReplyCreate, Reply,
 )
@@ -68,19 +70,32 @@ async def get_posts_by_board(board_id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/posts", response_model=Post)
-async def create_post(payload: PostCreate, db: Session = Depends(get_db)):
-    if not db.query(BoardModel).filter(BoardModel.id == payload.board_id).first():
+async def create_post(
+    title: Optional[str] = Form(None),
+    body: str = Form(...),
+    board_id: int = Form(...),
+    user_id: Optional[int] = Form(None),
+    image: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db)
+    ):
+    
+    if not db.query(BoardModel).filter(BoardModel.id == board_id).first():
         raise HTTPException(status_code=404, detail="Board not found")
 
     # Only validate user if one was provided (logged-in users)
-    if payload.user_id and not db.query(UserModel).filter(UserModel.id == payload.user_id).first():
+    if user_id and not db.query(UserModel).filter(UserModel.id == user_id).first():
         raise HTTPException(status_code=404, detail="User not found")
+    
+    image_url = None
+    if image and image.filename:
+        image_url = await validate_and_encode_image(image)
 
     post = PostModel(
-        title=payload.title,
-        body=payload.body,
-        board_id=payload.board_id,
-        user_id=payload.user_id,  # None = anonymous
+        title=title,
+        body=body,
+        board_id=board_id,
+        user_id=user_id,  # None = anonymous
+        image_url=image_url,
         created_at=date.today(),
         votes=0,
     )
@@ -117,16 +132,26 @@ async def delete_post(post_id: int, db: Session = Depends(get_db)):
 # Comment endpoints
 
 @app.post("/comments", response_model=Comment)
-async def create_comment(payload: CommentCreate, db: Session = Depends(get_db)):
-    if not db.query(PostModel).filter(PostModel.id == payload.post_id).first():
+async def create_comment(
+    body: str = Form(...),
+    post_id: int = Form(...),
+    image: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db)):
+
+    if not db.query(PostModel).filter(PostModel.id == post_id).first():
         raise HTTPException(status_code=404, detail="Post not found")
+    
+    image_url = None
+    if image and image.filename:
+        image_url = await validate_and_encode_image(image)
 
     comment = CommentModel(
-        body=payload.body,
-        post_id=payload.post_id,
+        body=body,
+        post_id=post_id,
         created_at=date.today(),
         votes=0,
         user_id=None,  # TODO: replace with authenticated user id
+        image_url=image_url
     )
     db.add(comment)
     db.commit()
@@ -144,16 +169,26 @@ async def get_comments_by_post(post_id: int, db: Session = Depends(get_db)):
 # Reply endpoints
 
 @app.post("/replies", response_model=Reply)
-async def create_reply(payload: ReplyCreate, db: Session = Depends(get_db)):
-    if not db.query(CommentModel).filter(CommentModel.id == payload.comment_id).first():
+async def create_reply(
+    body: str = Form(...),
+    comment_id: int = Form(...),
+    image: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db)):
+
+    if not db.query(CommentModel).filter(CommentModel.id == comment_id).first():
         raise HTTPException(status_code=404, detail="Comment not found")
+    
+    image_url = None
+    if image and image.filename:
+        image_url = await validate_and_encode_image(image)
 
     reply = ReplyModel(
-        body=payload.body,
-        comment_id=payload.comment_id,
+        body=body,
+        comment_id=comment_id,
         created_at=date.today(),
         votes=0,
         user_id=None,  # TODO: replace with authenticated user id
+        image_url=image_url
     )
     db.add(reply)
     db.commit()

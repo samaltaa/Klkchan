@@ -41,12 +41,18 @@ export async function createPost(payload: {
     body: string
     board_id: number
     user_id: null
+    image?: File | null
 }): Promise<Post>{
+
+    const form = new FormData()
+    form.append('body', payload.body)
+    form.append('board_id', String(payload.board_id))
+    if (payload.title) form.append('title', payload.title)
+    if (payload.image) form.append('image', payload.image)
 
     const response = await fetch(`${BASE_URL}/posts`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload),
+        body: form
     })
 
     if (!response.ok) throw new Error('Failed to create post')
@@ -57,12 +63,17 @@ export async function createPost(payload: {
 export async function createComment(payload: {
     body: string
     post_id: number
+    image?: File | null
 }): Promise<Comment> {
+
+    const form = new FormData()
+    form.append('body', payload.body)
+    form.append('post_id', String(payload.post_id))
+    if (payload.image) form.append('image', payload.image)
 
     const response = await fetch(`${BASE_URL}/comments`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload),
+        body: form,
     })
 
     if (!response.ok) throw new Error('Failed to create comment')
@@ -72,11 +83,17 @@ export async function createComment(payload: {
 export async function createReply(payload: {
     body: string
     comment_id: number
+    image?: File | null
 }): Promise<Comment> {
+    
+    const form = new FormData()
+    form.append('body', payload.body)
+    form.append('comment_id', String(payload.comment_id))
+    if (payload.image) form.append('image', payload.image)
+
     const response = await fetch(`${BASE_URL}/replies`, {
         method: 'POST',
-        headers: {'Content-Type' : 'application/json'},
-        body: JSON.stringify(payload),
+        body: form,
     })
     if (!response.ok) throw new Error('Failed to create reply')
     return response.json()

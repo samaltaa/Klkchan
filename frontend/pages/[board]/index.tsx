@@ -13,6 +13,7 @@ export default function BoardPage() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ title: '', body: '' })
+  const [image, setImage] = useState<File | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [expandedReplies, setExpandedReplies] = useState<Set<number>>(new Set())
 
@@ -44,8 +45,15 @@ export default function BoardPage() {
     if (!board || !form.body.trim()) return
     setSubmitting(true)
     try {
-      await createPost({ title: form.title, body: form.body, board_id: board.id, user_id: null })
+      await createPost({ 
+        title: form.title, 
+        body: form.body, 
+        board_id: board.id, 
+        user_id: null,
+        image})
+
       setForm({ title: '', body: '' })
+      setImage(null)
       setShowForm(false)
       await loadPosts(board)
     } finally {
@@ -90,6 +98,7 @@ export default function BoardPage() {
                 placeholder="Optional"
               />
             </div>
+
             <div className="flex gap-3 items-start">
               <label className="w-20 text-right text-gray-600 mt-1">Comment</label>
               <textarea
@@ -99,6 +108,27 @@ export default function BoardPage() {
                 required
               />
             </div>
+
+            <div className="flex gap-3 items-center">
+              <label className="w-20 text-right text-gray-600">Image</label>
+              <input
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                className="text-sm text-gray-600"
+                onChange={e => setImage(e.target.files?.[0] ?? null)}
+              />
+            </div>
+
+            {image && (
+              <div className="flex gap-3 items-center">
+                <div className="w-20" />
+                  <img
+                    src={URL.createObjectURL(image)}
+                    alt="preview"
+                    className="max-h-32 border border-[#b7c5d9]"
+                  />
+              </div>
+            )}
             <div className="flex justify-end">
               <button
                 type="submit"
@@ -134,6 +164,13 @@ export default function BoardPage() {
                   Reply to Post
                 </Link>
               </div>
+              {post.image_url && (
+                <img
+                  src={post.image_url}
+                  alt="post image"
+                  className="max-h-64 mb-2 border border-[#d9bfb7]"
+                />
+              )}
               <p className="text-sm whitespace-pre-wrap break-words">{post.body}</p>
             </div>
 
@@ -162,6 +199,13 @@ export default function BoardPage() {
                           Reply to Comment
                         </Link>
                       </div>
+                      {comment.image_url && (
+                        <img
+                          src={comment.image_url}
+                          alt="comment image"
+                          className="max-h-48 mb-2 border border-[#b7c5d9]"
+                        />
+                      )}
                       <p className="text-sm whitespace-pre-wrap break-words">{comment.body}</p>
                     </div>
 
@@ -175,6 +219,13 @@ export default function BoardPage() {
                               <span className="text-[#34345c]">No.{reply.id}</span>
                               <span className="text-gray-400">&gt;&gt;{comment.id}</span>
                             </div>
+                            {reply.image_url && (
+                              <img
+                                src={reply.image_url}
+                                alt="reply image"
+                                className="max-h-48 mb-2 border border-[#b7c5d9]"
+                              />
+                            )}
                             <p className="text-sm whitespace-pre-wrap break-words">{reply.body}</p>
                           </div>
                         ))}

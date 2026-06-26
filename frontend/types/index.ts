@@ -11,6 +11,7 @@ export interface Reply {
   created_at: string
   votes: number
   user_id: number | null
+  image_url: string | null
 }
 
 export interface Comment {
@@ -20,6 +21,7 @@ export interface Comment {
   created_at: string
   votes: number
   user_id: number | null
+  image_url: string | null
   replies: Reply[]
 }
 
@@ -31,5 +33,6 @@ export interface Post {
   created_at: string
   votes: number
   user_id: number | null
+  image_url: string | null
   comments: Comment[]
 }

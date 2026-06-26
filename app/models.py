@@ -38,6 +38,7 @@ class Post(Base):
     body: Mapped[str] = mapped_column(nullable=False)
     created_at: Mapped[date] = mapped_column(nullable=False)
     votes: Mapped[int] = mapped_column(Integer, default=0)
+    image_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
     user: Mapped[Optional["User"]] = relationship(back_populates="posts")
@@ -55,6 +56,7 @@ class Comment(Base):
     body: Mapped[str] = mapped_column(nullable=False)
     created_at: Mapped[date] = mapped_column(nullable=False)
     votes: Mapped[int] = mapped_column(Integer, default=0)
+    image_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
     user: Mapped[Optional["User"]] = relationship(back_populates="comments")
@@ -72,6 +74,7 @@ class Reply(Base):
     body: Mapped[str] = mapped_column(nullable=False)
     created_at: Mapped[date] = mapped_column(nullable=False)
     votes: Mapped[int] = mapped_column(Integer, default=0)
+    image_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
     user: Mapped[Optional["User"]] = relationship(back_populates="replies")

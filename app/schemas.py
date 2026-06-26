@@ -48,6 +48,7 @@ class Comment(CommentBase):
     votes: int
     user_id: Optional[int] = None   # None = anonymous
     post_id: int
+    image_url: Optional[str] = None
     replies: List["Reply"] = []
 
     class Config:
@@ -74,6 +75,7 @@ class Post(BaseModel):
     created_at: date
     votes: int
     user_id: Optional[int] = None
+    image_url: Optional[str] = None
     comments: List[Comment] = []
 
     class Config:
@@ -92,6 +94,7 @@ class Reply(BaseModel):
     created_at: date
     votes: int
     user_id: Optional[int] = None   # None = anonymous
+    image_url: Optional[str] = None
 
     class Config:
         from_attributes = True
